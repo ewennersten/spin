@@ -40,5 +40,15 @@ it('sätter saknad updatedAt till 0 och tar bara med kända fält', () => {
 it('begränsar namnen till 80 tecken', () => {
   expect(validateWorkout({ ...workout([block({ name: 'x'.repeat(80) })]), name: 'x'.repeat(80) }).ok).toBe(true)
   expect(err({ ...workout([]), name: 'x'.repeat(81) })).toContain('80')
-  expect(err(workout([block({ name: 'x'.repeat(81) })]))).toContain('Block 1')
+  expect(err(workout([block({ name: 'x'.repeat(81) })]))).toBe('Block 1: namn får vara högst 80 tecken')
+})
+it('kräver heltal för längd, procent och upprepningar', () => {
+  expect(err(workout([block({ durationSec: 90.5 })]))).toBe('Block 1: längd måste vara hela sekunder')
+  expect(err(workout([block({ fromPct: 33.3 })]))).toBe('Block 1: procent måste vara ett heltal')
+  expect(err(workout([block({ toPct: 99.5 })]))).toBe('Block 1: procent måste vara ett heltal')
+  expect(err(workout([{ kind: 'group', id: 'g', repeat: 2.5, blocks: [block()] }]))).toBe('Grupp 1: upprepningar måste vara ett heltal')
+})
+it('skriver kolon efter platsen när ett block inte är ett objekt', () => {
+  expect(err(workout([null]))).toBe('Block 1: måste vara ett objekt')
+  expect(err(workout([{ kind: 'group', id: 'g', repeat: 2, blocks: ['x'] }]))).toBe('Grupp 1, block 1: måste vara ett objekt')
 })

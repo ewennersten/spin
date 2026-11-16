@@ -35,36 +35,40 @@ function num(v: unknown, what: string, min: number, max: number, span: string): 
   return v
 }
 
+function int(v: unknown, what: string, min: number, max: number, span: string, whole = 'ett heltal'): number {
+  const n = num(v, what, min, max, span)
+  if (!Number.isInteger(n)) fail(`${what} måste vara ${whole}`)
+  return n
+}
+
 const pctSpan = `${LIMITS.pctMin} och ${LIMITS.pctMax}`
 const durSpan = `${LIMITS.durMinSec} sekunder och ${LIMITS.durMaxSec / 3600} timmar`
 
 function block(v: unknown, where: string): Block {
-  const b = obj(v, where)
+  const b = obj(v, `${where}:`)
   if (b.kind === 'group') fail(`${where}: grupper kan inte innehålla grupper`)
   if (b.kind !== 'block') fail(`${where}: okänd typ`)
   return {
     kind: 'block',
     id: str(b.id, `${where}: id`),
     name: name(b.name, `${where}: namn`),
-    durationSec: num(b.durationSec, `${where}: längd`, LIMITS.durMinSec, LIMITS.durMaxSec, durSpan),
-    fromPct: num(b.fromPct, `${where}: procent`, LIMITS.pctMin, LIMITS.pctMax, pctSpan),
-    toPct: num(b.toPct, `${where}: procent`, LIMITS.pctMin, LIMITS.pctMax, pctSpan),
+    durationSec: int(b.durationSec, `${where}: längd`, LIMITS.durMinSec, LIMITS.durMaxSec, durSpan, 'hela sekunder'),
+    fromPct: int(b.fromPct, `${where}: procent`, LIMITS.pctMin, LIMITS.pctMax, pctSpan),
+    toPct: int(b.toPct, `${where}: procent`, LIMITS.pctMin, LIMITS.pctMax, pctSpan),
   }
 }
 
 function group(g: Obj, where: string): Group {
-  const repeat = num(g.repeat, `${where}: upprepningar`, LIMITS.repeatMin, LIMITS.repeatMax, `${LIMITS.repeatMin} och ${LIMITS.repeatMax}`)
-  if (!Number.isInteger(repeat)) fail(`${where}: upprepningar måste vara ett heltal`)
   return {
     kind: 'group',
     id: str(g.id, `${where}: id`),
-    repeat,
+    repeat: int(g.repeat, `${where}: upprepningar`, LIMITS.repeatMin, LIMITS.repeatMax, `${LIMITS.repeatMin} och ${LIMITS.repeatMax}`),
     blocks: list(g.blocks, `${where}: blocken`).map((x, i) => block(x, `${where}, block ${i + 1}`)),
   }
 }
 
 function item(v: unknown, n: number): Item {
-  const o = obj(v, `Block ${n}`)
+  const o = obj(v, `Block ${n}:`)
   return o.kind === 'group' ? group(o, `Grupp ${n}`) : block(o, `Block ${n}`)
 }
 
