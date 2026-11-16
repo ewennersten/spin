@@ -1,0 +1,13 @@
+:root {
+  --bg: #0b0b0b;
+  --text: #f1efe8;
+  --muted: #b4b2a9;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
