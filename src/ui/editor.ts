@@ -44,6 +44,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   let timer: ReturnType<typeof setTimeout> | undefined
   let unsaved = false // en ändring som inte har sparats, även efter en misslyckad sparning
   let failed = false
+  let saved = JSON.stringify(w) // passet som det ser ut i lagringen
   const setItems = (l: Item[]) => { w.items = l }
 
   // Ritar om stapelbild och total tid när passet är giltigt, annars visas felet. Ger true om passet är giltigt.
@@ -59,13 +60,20 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   }
 
   function save(report: (text: string) => void) {
-    store.saveWorkout(w).then(() => { unsaved = failed = false; status.textContent = 'Sparat' }, e => { failed = true; report(message(e)) })
+    const json = JSON.stringify(w)
+    store.saveWorkout(w).then(() => {
+      saved = json
+      unsaved = failed = false
+      // "Sparat" bredvid ett markerat fält skulle kunna läsas som att det ogiltiga värdet sparades.
+      if (!main.querySelector('[aria-invalid]')) status.textContent = 'Sparat'
+    }, e => { failed = true; report(message(e)) })
   }
 
+  // Sparar bara när passet skiljer sig från lagringen, så en ogiltig tangenttryckning startar ingen sparning.
   function changed() {
     clearTimeout(timer)
     status.textContent = ''
-    unsaved = check()
+    unsaved = check() && JSON.stringify(w) !== saved
     if (unsaved) timer = setTimeout(() => save(text => { status.textContent = text }), 300)
   }
 
@@ -79,9 +87,10 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
 
   // Ett ogiltigt fältvärde går aldrig in i passet. Där gäller värdet från när fältet fick fokus, fältet markeras
   // och felet visas vid raden. När fältet lämnas får det tillbaka passets värde. Min och Sek är en längd
-  // tillsammans, så att man kan gå mellan dem (5:00 till 0:30 via 0:00) utan att något återställs.
+  // tillsammans: man kan gå mellan dem (5:00 till 0:30 via 0:00) utan att något återställs, och när paret
+  // lämnas med något fel återställs båda, så att de visar exakt passets längd.
   function guard<T extends object>(row: HTMLElement, model: T, values: () => Map<HTMLInputElement, string | number>,
-      read: (base: T) => Map<HTMLInputElement, string | null>, pair: EventTarget[] = []) {
+      read: (base: T) => Map<HTMLInputElement, string | null>, pair: HTMLInputElement[] = []) {
     const msg = el('p', { className: 'error', role: 'status', id: `fel-${++nextMessageId}` })
     row.append(msg)
     for (const [input, value] of values()) {
@@ -100,9 +109,10 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
     row.addEventListener('focusin', () => { base = { ...model } })
     row.addEventListener('focusout', e => {
       if (inPair(e.target) && inPair(e.relatedTarget)) return
-      const invalid = [...values()].filter(([input]) => input.ariaInvalid)
-      if (!invalid.length) return
-      for (const [input, value] of invalid) input.value = String(value)
+      const pairInvalid = pair.some(p => p.ariaInvalid)
+      const restore = [...values()].filter(([input]) => input.ariaInvalid || (pairInvalid && inPair(input)))
+      if (!restore.length) return
+      for (const [input, value] of restore) input.value = String(value)
       run()
     })
   }
