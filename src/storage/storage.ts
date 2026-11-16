@@ -66,8 +66,11 @@ export function createStorage(kv: KV = window.localStorage): Store {
     async listWorkouts() { return readWorkouts() },
     async getWorkout(id) { return readWorkouts().find(w => w.id === id) ?? null },
     async saveWorkout(w) {
+      // Samma kontroll som importAll, så att allt som sparas också går att importera från exporten.
+      const r = validateWorkout(w)
+      if (!r.ok) throw new Error(r.error)
       const list = readWorkouts()
-      const saved = { ...w, updatedAt: Date.now() }
+      const saved = { ...r.workout, updatedAt: Date.now() }
       const i = list.findIndex(x => x.id === w.id)
       if (i >= 0) list[i] = saved
       else list.push(saved)

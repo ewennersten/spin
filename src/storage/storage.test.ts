@@ -74,6 +74,21 @@ it('skriver aldrig över data som inte går att tolka', async () => {
     expect(kv.data.get(KEY)).toBe(raw)
   }
 })
+it('sparar inte ett ogiltigt pass', async () => {
+  const kv = fakeKV({ [KEY]: '[]' })
+  const s = createStorage(kv)
+  await expect(s.saveWorkout({ id: 'a', name: '', items: [], updatedAt: 0 })).rejects.toThrow('får inte vara tomt')
+  await expect(s.saveWorkout({ id: 'a', name: 'A'.repeat(75) + ' (kopia)', items: [], updatedAt: 0 })).rejects.toThrow('80 tecken')
+  expect(kv.data.get(KEY)).toBe('[]')
+})
+it('allt som går att spara går att exportera och importera tillbaka', async () => {
+  const s = createStorage(fakeKV({ [KEY]: '[]' }))
+  await s.saveWorkout({ id: 'a', name: 'Mitt', updatedAt: 0, items: [
+    { kind: 'block', id: 'b1', name: '', durationSec: 300, fromPct: 50, toPct: 70 },
+    { kind: 'group', id: 'g', repeat: 4, blocks: [{ kind: 'block', id: 'b2', name: 'Upp', durationSec: 120, fromPct: 105, toPct: 105 }] }] })
+  expect(await s.importAll(await s.exportAll())).toBe(1)
+  expect(await s.listWorkouts()).toHaveLength(2)
+})
 it('sparar och läser peppord och mikrofon, och faller tillbaka på standard vid trasig data', async () => {
   const kv = fakeKV()
   const s = createStorage(kv)
