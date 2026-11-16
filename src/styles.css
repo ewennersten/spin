@@ -131,11 +131,11 @@ body {
   padding: 4px 6px;
 }
 
-.editor > .field {
+.passname {
   margin-top: 16px;
 }
 
-.editor > .field input {
+.passname input {
   max-width: 480px;
 }
 
@@ -159,7 +159,20 @@ body {
 }
 
 .error {
+  margin: 4px 0 0;
   color: #f09595;
+}
+
+/* Ett tomt felfält tar ingen plats men finns kvar för skärmläsare. */
+.error:empty {
+  margin: 0;
+}
+
+.leave-error {
+  box-sizing: border-box;
+  max-width: 1000px;
+  margin: 16px auto 0;
+  padding: 0 16px;
 }
 
 .items,
@@ -173,8 +186,7 @@ body {
   margin: 16px 0;
 }
 
-.block,
-.group .head {
+.line {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;

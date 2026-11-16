@@ -1,4 +1,4 @@
-import { duplicateAt, moveItem, newBlock, newGroup, removeAt } from '../model/edit'
+import { duplicateAt, durationError, fieldError, moveItem, nameError, newBlock, newGroup, removeAt } from '../model/edit'
 import { flatten, totalDuration } from '../model/flatten'
 import { mmss } from '../model/format'
 import type { Block, Group, Item, Workout } from '../model/types'
@@ -19,8 +19,10 @@ const message = (e: unknown) =>
   e instanceof DOMException && e.name === 'QuotaExceededError' ? 'Webbläsarens lagring är full, så ändringen sparades inte.'
     : e instanceof Error ? e.message : String(e)
 
-const numberInput = (value: number, min: number, max: number) =>
-  el('input', { type: 'number', value: String(value), min: String(min), max: String(max) })
+// Fälten får sina värden från passet i guard.
+const numberInput = (min: number, max: number) => el('input', { type: 'number', min: String(min), max: String(max) })
+const textInput = () => el('input', { type: 'text', maxLength: LIMITS.nameMax })
+let nextMessageId = 0
 
 function field(text: string, input: HTMLInputElement) {
   const label = el('label', { className: 'field' })
@@ -30,7 +32,7 @@ function field(text: string, input: HTMLInputElement) {
 
 const where = (text: string) => el('span', { className: 'where', textContent: text, ariaHidden: 'true' })
 
-function editor(store: Store, main: HTMLElement, w: Workout): () => void {
+function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout): () => void {
   const status = el('p', { className: 'status', role: 'status' })
   const error = el('p', { className: 'error', role: 'status' })
   const total = el('span')
@@ -40,7 +42,8 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
   // Knappar som ska kunna få fokus igen efter att listan ritats om, med nyckeln "<id>:<åtgärd>".
   const buttons = new Map<string, HTMLButtonElement>()
   let timer: ReturnType<typeof setTimeout> | undefined
-  let dirty = false
+  let unsaved = false // en ändring som inte har sparats, även efter en misslyckad sparning
+  let failed = false
   const setItems = (l: Item[]) => { w.items = l }
 
   // Ritar om stapelbild och total tid när passet är giltigt, annars visas felet. Ger true om passet är giltigt.
@@ -55,22 +58,53 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
     return true
   }
 
+  function save(report: (text: string) => void) {
+    store.saveWorkout(w).then(() => { unsaved = failed = false; status.textContent = 'Sparat' }, e => { failed = true; report(message(e)) })
+  }
+
   function changed() {
     clearTimeout(timer)
     status.textContent = ''
-    dirty = check()
-    if (dirty) timer = setTimeout(() => {
-      dirty = false
-      store.saveWorkout(w).then(() => { status.textContent = 'Sparat' }, e => { status.textContent = message(e) })
-    }, 300)
+    unsaved = check()
+    if (unsaved) timer = setTimeout(() => save(text => { status.textContent = text }), 300)
   }
 
-  // När vyn lämnas finns ingen sida kvar att skriva felet på.
+  // När vyn lämnas finns redigeraren inte kvar, så ett fel skrivs överst på nästa vy.
   function flush() {
     clearTimeout(timer)
-    if (!dirty) return
-    dirty = false
-    store.saveWorkout(w).catch(e => alert(message(e)))
+    if (unsaved) save(text => root.prepend(el('p', { className: 'error leave-error', role: 'alert', textContent: `${w.name}: ${text}` })))
+  }
+  // Har sparningen misslyckats frågar webbläsaren innan sidan laddas om eller stängs.
+  const warn = (e: BeforeUnloadEvent) => { if (failed) e.preventDefault() }
+
+  // Ett ogiltigt fältvärde går aldrig in i passet. Där gäller värdet från när fältet fick fokus, fältet markeras
+  // och felet visas vid raden. När fältet lämnas får det tillbaka passets värde. Min och Sek är en längd
+  // tillsammans, så att man kan gå mellan dem (5:00 till 0:30 via 0:00) utan att något återställs.
+  function guard<T extends object>(row: HTMLElement, model: T, values: () => Map<HTMLInputElement, string | number>,
+      read: (base: T) => Map<HTMLInputElement, string | null>, pair: EventTarget[] = []) {
+    const msg = el('p', { className: 'error', role: 'status', id: `fel-${++nextMessageId}` })
+    row.append(msg)
+    for (const [input, value] of values()) {
+      input.value = String(value)
+      input.setAttribute('aria-describedby', msg.id)
+    }
+    let base = { ...model }
+    const run = () => {
+      const errors = read(base)
+      for (const [input, error] of errors) input.ariaInvalid = error ? 'true' : null
+      msg.textContent = [...new Set(errors.values())].filter(Boolean).join(' ')
+      changed()
+    }
+    const inPair = (t: EventTarget | null) => pair.some(p => p === t)
+    row.addEventListener('input', run)
+    row.addEventListener('focusin', () => { base = { ...model } })
+    row.addEventListener('focusout', e => {
+      if (inPair(e.target) && inPair(e.relatedTarget)) return
+      const invalid = [...values()].filter(([input]) => input.ariaInvalid)
+      if (!invalid.length) return
+      for (const [input, value] of invalid) input.value = String(value)
+      run()
+    })
   }
 
   // Listan ritas bara om när dess struktur ändras, så att fältet man skriver i behåller fokus och markör.
@@ -103,30 +137,41 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
   }
 
   function blockRow(b: Block, label: string, actions: HTMLElement) {
-    const name = el('input', { type: 'text', value: b.name, maxLength: LIMITS.nameMax })
-    const min = numberInput(Math.floor(b.durationSec / 60), 0, LIMITS.durMaxSec / 60)
-    const sec = numberInput(b.durationSec % 60, 0, 59)
-    const from = numberInput(b.fromPct, LIMITS.pctMin, LIMITS.pctMax)
-    const to = numberInput(b.toPct, LIMITS.pctMin, LIMITS.pctMax)
+    const name = textInput()
+    const min = numberInput(0, LIMITS.durMaxSec / 60)
+    const sec = numberInput(0, 59)
+    const from = numberInput(LIMITS.pctMin, LIMITS.pctMax)
+    const to = numberInput(LIMITS.pctMin, LIMITS.pctMax)
     const zone = () => { name.placeholder = zoneFor((b.fromPct + b.toPct) / 2).name }
-    zone()
+    const line = el('div', { className: 'line' })
+    line.append(where(label), field('Namn', name), field('Min', min), field('Sek', sec), field('Från %', from), field('Till %', to), actions)
     const row = el('div', { className: 'block', role: 'group', ariaLabel: label })
-    row.append(where(label), field('Namn', name), field('Min', min), field('Sek', sec), field('Från %', from), field('Till %', to), actions)
-    row.oninput = () => {
-      // valueAsNumber är NaN för ett tomt fält, så att valideringen säger till i stället för att värdet blir 0.
-      // Delade minuter skulle tyst bli hela sekunder, så de räknas också som ogiltiga.
-      const m = min.valueAsNumber
-      Object.assign(b, { name: name.value, durationSec: Number.isInteger(m) ? m * 60 + sec.valueAsNumber : NaN, fromPct: from.valueAsNumber, toPct: to.valueAsNumber })
+    row.append(line)
+    const values = () => new Map<HTMLInputElement, string | number>(
+      [[name, b.name], [min, Math.floor(b.durationSec / 60)], [sec, b.durationSec % 60], [from, b.fromPct], [to, b.toPct]])
+    guard(row, b, values, base => {
+      // valueAsNumber är NaN för ett tomt fält, så ett tomt fält blir ett fel och aldrig 0.
+      const [m, s] = [min.valueAsNumber, sec.valueAsNumber]
+      const errors = new Map([[name, nameError(name.value, false)], [min, fieldError('min', m)], [sec, fieldError('sec', s)],
+        [from, fieldError('from', from.valueAsNumber)], [to, fieldError('to', to.valueAsNumber)]])
+      if (!errors.get(min) && !errors.get(sec)) {
+        const d = durationError(m, s)
+        errors.set(min, d).set(sec, d)
+      }
+      b.name = errors.get(name) ? base.name : name.value
+      b.durationSec = errors.get(min) || errors.get(sec) ? base.durationSec : m * 60 + s
+      b.fromPct = errors.get(from) ? base.fromPct : from.valueAsNumber
+      b.toPct = errors.get(to) ? base.toPct : to.valueAsNumber
       zone()
-      changed()
-    }
+      return errors
+    }, [min, sec])
+    zone()
     return row
   }
 
   function groupRow(g: Group, i: number) {
     const label = `Grupp ${i + 1}`
-    const repeat = numberInput(g.repeat, LIMITS.repeatMin, LIMITS.repeatMax)
-    repeat.oninput = () => { g.repeat = repeat.valueAsNumber; changed() }
+    const repeat = numberInput(LIMITS.repeatMin, LIMITS.repeatMax)
     const addKey = `${g.id}:add`
     const add = button('Lägg till block i gruppen', () => { g.blocks = [...g.blocks, newBlock()]; restructure([addKey]) })
     buttons.set(addKey, add)
@@ -136,8 +181,15 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
       const bl = `${label}, block ${j + 1}`
       return blockRow(b, bl, controls(bl, g.blocks, j, setBlocks, addKey))
     }))
+    const line = el('div', { className: 'line' })
+    line.append(where(label), field('Upprepa', repeat), controls(label, w.items, i, setItems, 'add'))
     const head = el('div', { className: 'head' })
-    head.append(where(label), field('Upprepa', repeat), controls(label, w.items, i, setItems, 'add'))
+    head.append(line)
+    guard(head, g, () => new Map([[repeat, g.repeat]]), base => {
+      const error = fieldError('repeat', repeat.valueAsNumber)
+      g.repeat = error ? base.repeat : repeat.valueAsNumber
+      return new Map([[repeat, error]])
+    })
     const box = el('div', { className: 'group', role: 'group', ariaLabel: label })
     box.append(head, blocks, add)
     return box
@@ -150,8 +202,14 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
       : blockRow(item, `Block ${i + 1}`, controls(`Block ${i + 1}`, w.items, i, setItems, 'add'))))
   }
 
-  const nameInput = el('input', { type: 'text', value: w.name, maxLength: LIMITS.nameMax })
-  nameInput.oninput = () => { w.name = nameInput.value; changed() }
+  const nameInput = textInput()
+  const nameRow = el('div', { className: 'passname' })
+  nameRow.append(field('Namn på passet', nameInput))
+  guard(nameRow, w, () => new Map([[nameInput, w.name]]), base => {
+    const error = nameError(nameInput.value, true)
+    w.name = error ? base.name : nameInput.value
+    return new Map([[nameInput, error]])
+  })
 
   const toolbar = el('div', { className: 'toolbar' })
   toolbar.append(link('Starta passet', `#/run/${w.id}`), link('Till biblioteket', '#/'), status)
@@ -162,13 +220,18 @@ function editor(store: Store, main: HTMLElement, w: Workout): () => void {
   const adds = el('div', { className: 'toolbar' })
   adds.append(addBlock, button('Lägg till grupp', () => { w.items = [...w.items, newGroup()]; restructure([]) }))
 
-  main.append(el('h1', { textContent: 'Redigera pass' }), toolbar, field('Namn på passet', nameInput), totalRow, svg, error, list, adds)
+  main.append(el('h1', { textContent: 'Redigera pass' }), toolbar, nameRow, totalRow, svg, error, list, adds)
   renderList()
   check()
 
   // Även en omladdning eller en stängd flik inom 300 ms ska få med den sista ändringen.
   addEventListener('pagehide', flush)
-  return () => { removeEventListener('pagehide', flush); flush() }
+  addEventListener('beforeunload', warn)
+  return () => {
+    removeEventListener('pagehide', flush)
+    removeEventListener('beforeunload', warn)
+    flush()
+  }
 }
 
 export function editorView(store: Store): View {
@@ -181,7 +244,7 @@ export function editorView(store: Store): View {
     store.getWorkout(id ?? '')
       .then(w => {
         if (!alive) return
-        if (w) leave = editor(store, main, w)
+        if (w) leave = editor(store, root, main, w)
         else main.append(el('h1', { textContent: 'Passet finns inte' }), back())
       })
       .catch(e => { if (alive) main.replaceChildren(el('p', { textContent: message(e) }), back()) })
