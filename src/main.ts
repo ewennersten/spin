@@ -1,6 +1,7 @@
 import './styles.css'
 import { parseRoute, type Route, type View } from './router'
 import { createStorage } from './storage/storage'
+import { editorView } from './ui/editor'
 import { libraryView } from './ui/library'
 
 const store = createStorage()
@@ -14,7 +15,7 @@ const placeholder =
 // Kopplingen mellan adress och vy. Senare uppgifter byter platshållarna här.
 const views: Record<Route['view'], View> = {
   library: libraryView(store),
-  edit: placeholder('Redigera pass'),
+  edit: editorView(store),
   run: placeholder('Kör pass'),
 }
 

@@ -12,13 +12,16 @@ body {
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-.library {
+.library,
+.editor {
   max-width: 1000px;
   margin: 0 auto;
   padding: 32px 16px;
 }
 
-.library button {
+.library button,
+.editor button,
+.editor .button {
   font: inherit;
   padding: 6px 14px;
   border: 1px solid #ffffff33;
@@ -26,9 +29,11 @@ body {
   background: #ffffff14;
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
 }
 
-.library button:disabled {
+.library button:disabled,
+.editor button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -105,4 +110,89 @@ body {
   width: 100%;
   max-width: 480px;
   font: inherit;
+}
+
+.editor .toolbar .status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.field input {
+  font: inherit;
+  font-size: 1rem;
+  padding: 4px 6px;
+}
+
+.editor > .field {
+  margin-top: 16px;
+}
+
+.editor > .field input {
+  max-width: 480px;
+}
+
+.block input[type='text'] {
+  width: 10em;
+}
+
+.field input[type='number'] {
+  width: 4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.total {
+  font-variant-numeric: tabular-nums;
+}
+
+.editor svg {
+  display: block;
+  width: 100%;
+  height: 160px;
+}
+
+.error {
+  color: #f09595;
+}
+
+.items,
+.group .blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.items {
+  margin: 16px 0;
+}
+
+.block,
+.group .head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.where {
+  flex: 0 0 8em;
+  align-self: center;
+  color: var(--muted);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #ffffff33;
+  border-radius: 8px;
 }
