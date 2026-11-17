@@ -104,6 +104,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const fullscreenHint = el('p', { className: 'fullscreen-hint', textContent: 'Tryck F för fullskärm', hidden: true })
   const quit = el('p', { className: 'quit', role: 'alert', hidden: true })
   quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, valfri annan tangent fortsätter')
+  const animLine = el('p', { className: 'label', hidden: true })
   const beatDot = el('span', { className: 'lamp', ariaHidden: 'true' })
   const beatMode = el('span')
   const beatBox = el('p', { className: 'beat' })
@@ -124,7 +125,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const startRow = el('div', { className: 'split' })
     startRow.append(el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), link('Till biblioteket', '#/'))
     show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
-      bars(w, segments).node, list, startRow, panel)
+      bars(w, segments).node, list, startRow, animLine, panel)
     drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
   }
 
@@ -162,6 +163,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     frameId = requestAnimationFrame(frame)
     const t = now()
     main.classList.toggle('nocursor', t - movedAt > 3000)
+    if (mode === 'overview') {
+      // Det sparade valet läses in efter att vyn har öppnats, så raden skrivs varje bildruta (put skriver bara ändringar).
+      animLine.hidden = !stage || stage.broken
+      put(animLine, animOn ? 'Animationer: på (A stänger av)' : 'Animationer: av (A sätter på)')
+    }
     const at = mode === 'live' ? draw(t) : undefined
     sound()
     // Efter draw, som kan ha avslutat passet. Dold under nedräkningens och avslutsrutans slöja, så att bilden
@@ -289,6 +295,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     }
     // Före start pågår inget pass, så Q behöver ingen bekräftelse.
     if (key === 'q' && mode === 'overview') { location.hash = '#/'; return }
+    if (key === 'a' && mode !== 'done') {
+      // Utan WebGL, eller när scenen har slutat fungera, finns inga animationer att stänga av.
+      if (!stage || stage.broken) return
+      animOn = !animOn
+      store.saveAnimationsOn(animOn).catch(e => { status.textContent = `Valet för animationerna sparades inte: ${message(e)}` })
+      return
+    }
     if (mode !== 'live') return
     if (key === ' ') clock = clock.running ? pause(clock, t) : start(clock, t)
     else if (key === 'arrowright') {
@@ -301,13 +314,6 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     else if (key === 'q') { quitting = true; quit.hidden = false; return }
     else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
     else if (key === 'm') { source.enabled = !source.enabled; return }
-    else if (key === 'a') {
-      // Utan WebGL, eller när scenen har slutat fungera, finns inga animationer att stänga av.
-      if (!stage || stage.broken) return
-      animOn = !animOn
-      store.saveAnimationsOn(animOn).catch(e => { status.textContent = `Valet för animationerna sparades inte: ${message(e)}` })
-      return
-    }
     else return
     persist()
   }
