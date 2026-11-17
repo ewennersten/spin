@@ -833,11 +833,21 @@ h2,
 }
 
 /* Procenten lyser i zonens färg (--zone sätts av run.ts). */
+/* Procenten i zonens färg: ljus upptill för läsbarheten och full zonfärg nedtill, med glöd i samma färg
+   (--zone och --zone-light sätts av run.ts). Som klockan ritas skuggan med filter, eftersom texten är genomskinlig. */
 .run .pct {
   display: inline-block;
   font-size: calc(17 * var(--u));
   line-height: 1;
-  text-shadow: 0 0 0.04em #000, 0 0 0.12em #000, 0 0 0.45em var(--zone, transparent);
+  background: linear-gradient(180deg, var(--zone-light, #fff) 25%, var(--zone, #fff) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.1em #000) drop-shadow(0 0 0.3em var(--zone, transparent));
+}
+
+.run[data-mode='live'] .current .pct {
+  text-shadow: none;
 }
 
 /* Raden Nästa och de små texterna kring klockorna i samma tekno-stil som siffrorna. */
@@ -898,15 +908,16 @@ h2,
 
 /* Klockan tonar från vitt till laxrosa, som tridräkten. Skuggan är ett filter, eftersom en textskugga
    skulle synas genom den genomskinliga fyllningen. */
+/* Klockan är vit upptill, för läsbarheten på långt håll, och tonar mot zonens färg nedtill, med glöd i samma färg. */
 .run .remaining {
   font-size: calc(28 * var(--u));
   line-height: 0.95;
-  background: linear-gradient(180deg, #ffffff 35%, var(--laxrosa) 100%);
+  background: linear-gradient(180deg, #ffffff 30%, var(--zone-light, var(--laxrosa)) 65%, var(--zone, var(--laxrosa)) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   text-shadow: none;
-  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.1em #000);
+  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.1em #000) drop-shadow(0 0 0.25em var(--zone, transparent));
 }
 
 /* Procenten och klockan studsar lite på varje slag i musiken (klassen pulse sätts av run.ts). */
@@ -927,6 +938,12 @@ h2,
 .run .current.pulse .remaining {
   transform: scale(1.04);
   transition-duration: 0ms; /* slaget syns direkt och klingar sedan av */
+}
+
+/* På slaget glöder procenten och klockan starkare i zonens färg. */
+.run .current.pulse .pct,
+.run .current.pulse .remaining {
+  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.1em #000) drop-shadow(0 0 0.55em var(--zone, transparent));
 }
 
 @media (prefers-reduced-motion: reduce) {

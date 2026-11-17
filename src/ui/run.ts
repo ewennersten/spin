@@ -291,8 +291,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     put(blockName, seg.name)
     put(pct, `${shownPct} %`)
     const zone = zoneFor(shownPct)
-    pct.style.color = zone.textColor
-    pct.style.setProperty('--zone', zone.color)
+    // Procenten och klockan tonar i zonens färg (se styles.css).
+    current.style.setProperty('--zone', zone.color)
+    current.style.setProperty('--zone-light', zone.textColor)
     calmZone = zone.id === 'vila' || zone.id === 'lugnt'
     put(nextTag, nextSeg ? 'Nästa' : 'Sista blocket')
     nextTag.disabled = !nextSeg

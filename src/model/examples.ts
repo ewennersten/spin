@@ -18,4 +18,5 @@ export const EXAMPLES: Workout[] = [
   workout('exempel-sweetspot', 'Sweetspot 3 × 12 min', g(3, b(720, 90), b(240, 55))),
   workout('exempel-troskel', 'Tröskel 4 × 8 min', g(4, b(480, 100), b(180, 55))),
   workout('exempel-vo2max', 'VO2max 5 × 4 min', g(5, b(240, 115), b(240, 50))),
+  workout('exempel-sprint', 'Sprint 10 × 30 s', g(10, b(30, 150), b(90, 50))),
 ]

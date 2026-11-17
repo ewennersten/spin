@@ -249,7 +249,7 @@ export function createStage(options: StageOptions): Stage | null {
     camera.position.add(shake)
 
     bloom.strength = (0.3 + 1.2 * intensity) * (1 - 0.5 * calmMix)
-    glitch.enabled = !calm && zone.name === 'VO2max'
+    glitch.enabled = !calm && (zone.id === 'vo2max' || zone.id === 'anaerob')
     glitch.uniforms.uOffset.value = 0.002 + 0.006 * p
     glitch.uniforms.uBars.value = p > 0.6 ? 1 : 0
 

@@ -85,8 +85,20 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
   const frost = el('mask', { id: id('frost'), maskContentUnits: 'objectBoundingBox' })
   frost.append(el('rect', { width: 1, height: 1, fill: grad('frost-fill', DOWN, [[0, '#ffffff', 0.5], [0.6, '#ffffff', 0.8], [1, '#ffffff', 1]]) }))
   defs.append(frost)
-  const floorLight = grad('floor-light', DOWN, [[0.45, '#ffffff', 0], [1, '#ffffff', 0.35]])
-  const beatLight = grad('beat-light', DOWN, [[0.3, '#ffffff', 0], [1, '#ffffff', 1]])
+  // Ljuset nere vid golvet och ljuset som slår i takt har zonens ljusa färg och inte vitt, så att stapeln behåller
+  // sin färg. En övertoning per zon.
+  const lights = new Map<string, { floor: string; beat: string }>()
+  const lightsFor = (hex: string) => {
+    let l = lights.get(hex)
+    if (!l) {
+      l = {
+        floor: grad(`floor-${hex.slice(1)}`, DOWN, [[0.45, hex, 0], [1, hex, 0.45]]),
+        beat: grad(`beat-${hex.slice(1)}`, DOWN, [[0.3, hex, 0], [1, hex, 1]]),
+      }
+      lights.set(hex, l)
+    }
+    return l
+  }
   // Spegelgolvet: staplarna speglas suddigt och tonar bort nedåt.
   const blur = el('filter', { id: id('blur') })
   blur.append(el('feGaussianBlur', { stdDeviation: 4 }))
@@ -113,12 +125,13 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     // golvet som slår i takt på stapeln som pågår (se styles.css).
     const [, from, to] = shape.points.split(' ')
     const edge = zoneFor(segments[i].toPct).textColor
+    const light = lightsFor(edge)
     // color ger glöden zonens färg, --i ordningen när staplarna växer fram i biblioteket.
     const bar = el('g', { class: 'bar', color: shape.toColor, style: `--i: ${i}` })
     bar.append(
       el('polygon', { points: shape.points, fill, mask: `url(#${id('frost')})` }),
-      el('polygon', { points: shape.points, fill: floorLight }),
-      el('polygon', { points: shape.points, fill: beatLight, opacity: 0, class: 'glow' }),
+      el('polygon', { points: shape.points, fill: light.floor }),
+      el('polygon', { points: shape.points, fill: light.beat, opacity: 0, class: 'glow' }),
       el('polygon', { points: shape.points, fill: 'none', stroke: edge, 'stroke-opacity': 0.5, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
       el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: edge, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
     )

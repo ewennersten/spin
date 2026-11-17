@@ -26,6 +26,9 @@ const PEPWORDS = 'spinning.pepwords.v1'
 const MIC = 'spinning.mic.v1'
 const ANIM = 'spinning.anim.v1'
 const LIGHT_LIMIT = 'spinning.lightlimit.v1'
+// Exempelpassen som redan har lagts in. Saknas nyckeln fanns bara de tre första när biblioteket skapades.
+const OFFERED = 'spinning.examples.v1'
+const FIRST_EXAMPLES = ['exempel-sweetspot', 'exempel-troskel', 'exempel-vo2max']
 const PEP_DEFAULT = ['Kom igen!', 'Håll i!', 'Starkt!', 'Tryck på!', 'Ni äger det här!', 'Snart där!', 'Ge allt!', 'Bra jobbat!']
 const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 }
 
@@ -46,12 +49,20 @@ export function createStorage(kv: KV = window.localStorage): Store {
     if (raw === null) {
       raw = JSON.stringify(EXAMPLES)
       kv.setItem(WORKOUTS, raw)
+      kv.setItem(OFFERED, JSON.stringify(EXAMPLES.map(w => w.id)))
     }
     let list: unknown
     try { list = JSON.parse(raw) } catch { /* list förblir undefined och avvisas nedan */ }
     if (!Array.isArray(list) || !list.every(w => typeof w?.id === 'string' && Array.isArray(w?.items)))
       throw new Error('Sparade pass gick inte att läsa')
-    return list
+    // Nya exempelpass läggs till i ett befintligt bibliotek, en gång var: ett exempel man har tagit bort kommer inte tillbaka.
+    const offered = readSetting<string[]>(OFFERED, FIRST_EXAMPLES, v => Array.isArray(v) && v.every(x => typeof x === 'string'))
+    const workouts = list as Workout[]
+    const added = EXAMPLES.filter(e => !offered.includes(e.id) && !workouts.some(w => w.id === e.id))
+    if (!added.length) return workouts
+    kv.setItem(WORKOUTS, JSON.stringify([...workouts, ...added]))
+    kv.setItem(OFFERED, JSON.stringify([...offered, ...added.map(e => e.id)]))
+    return [...workouts, ...added]
   }
   const writeWorkouts = (list: Workout[]) => kv.setItem(WORKOUTS, JSON.stringify(list))
 

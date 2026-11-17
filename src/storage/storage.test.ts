@@ -9,13 +9,28 @@ const fakeKV = (init: Record<string, string> = {}): KV & { data: Map<string, str
   return { data, getItem: k => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v), removeItem: k => void data.delete(k) }
 }
 const KEY = 'spinning.workouts.v1'
+// Ett tomt bibliotek där alla exempelpass redan har erbjudits, så att inget läggs till av sig självt.
+const EMPTY = { [KEY]: '[]', 'spinning.examples.v1': JSON.stringify(EXAMPLES.map(w => w.id)) }
 
 it('fyller på med exempelpass första gången', async () => {
   const s = createStorage(fakeKV())
-  expect((await s.listWorkouts()).map(w => w.name)).toEqual(['Sweetspot 3 × 12 min', 'Tröskel 4 × 8 min', 'VO2max 5 × 4 min'])
+  expect((await s.listWorkouts()).map(w => w.name)).toEqual(['Sweetspot 3 × 12 min', 'Tröskel 4 × 8 min', 'VO2max 5 × 4 min', 'Sprint 10 × 30 s'])
+})
+
+it('lägger till nya exempelpass i ett befintligt bibliotek, men bara en gång', async () => {
+  const kv = fakeKV()
+  const s = createStorage(kv)
+  await s.listWorkouts()
+  // Ett bibliotek från innan sprintpasset fanns: bara de tre första exemplen, utan nyckeln för erbjudna exempel.
+  const old = JSON.parse(kv.data.get(KEY)!).filter((w: { id: string }) => w.id !== 'exempel-sprint')
+  kv.data.set(KEY, JSON.stringify(old))
+  kv.data.delete('spinning.examples.v1')
+  expect((await s.listWorkouts()).map(w => w.id)).toContain('exempel-sprint')
+  await s.deleteWorkout('exempel-sprint')
+  expect((await s.listWorkouts()).map(w => w.id)).not.toContain('exempel-sprint')
 })
 it('sparar, hämtar och tar bort', async () => {
-  const s = createStorage(fakeKV({ [KEY]: '[]' }))
+  const s = createStorage(fakeKV(EMPTY))
   await s.saveWorkout({ id: 'a', name: 'Mitt', items: [], updatedAt: 0 })
   expect((await s.getWorkout('a'))!.updatedAt).toBeGreaterThan(0)
   expect(await s.getWorkout('finns-inte')).toBeNull()
@@ -30,13 +45,14 @@ it('rör inte trasig data', async () => {
 it('exporterar och importerar utan att skriva över', async () => {
   const s = createStorage(fakeKV())
   const file = await s.exportAll()
-  expect(await s.importAll(file)).toBe(3)
+  const n = EXAMPLES.length
+  expect(await s.importAll(file)).toBe(n)
   const all = await s.listWorkouts()
-  expect(all).toHaveLength(6)
-  expect(new Set(all.map(w => w.id)).size).toBe(6)
+  expect(all).toHaveLength(2 * n)
+  expect(new Set(all.map(w => w.id)).size).toBe(2 * n)
 })
 it('avvisar ogiltiga filer utan att lägga till något', async () => {
-  const s = createStorage(fakeKV({ [KEY]: '[]' }))
+  const s = createStorage(fakeKV(EMPTY))
   await expect(s.importAll('inte json')).rejects.toThrow('giltig passfil')
   await expect(s.importAll('{"workouts": 5}')).rejects.toThrow('giltig passfil')
   const bad = JSON.stringify({ app: 'spinningskarm', version: 1, workouts: [
@@ -64,8 +80,8 @@ it('ett trasigt värde för animationerna ger på', async () => {
 })
 
 it('exempelpassen är giltiga och har rätt längd', () => {
-  expect(EXAMPLES.map(w => validateWorkout(w).ok)).toEqual([true, true, true])
-  expect(EXAMPLES.map(w => totalDuration(flatten(w)))).toEqual([74 * 60, 70 * 60, 66 * 60])
+  expect(EXAMPLES.map(w => validateWorkout(w).ok)).toEqual([true, true, true, true])
+  expect(EXAMPLES.map(w => totalDuration(flatten(w)))).toEqual([74 * 60, 70 * 60, 66 * 60, 46 * 60])
 })
 it('ger nya id:n på alla nivåer vid import', async () => {
   const s = createStorage(fakeKV())
@@ -87,14 +103,14 @@ it('skriver aldrig över data som inte går att tolka', async () => {
   }
 })
 it('sparar inte ett ogiltigt pass', async () => {
-  const kv = fakeKV({ [KEY]: '[]' })
+  const kv = fakeKV(EMPTY)
   const s = createStorage(kv)
   await expect(s.saveWorkout({ id: 'a', name: '', items: [], updatedAt: 0 })).rejects.toThrow('får inte vara tomt')
   await expect(s.saveWorkout({ id: 'a', name: 'A'.repeat(75) + ' (kopia)', items: [], updatedAt: 0 })).rejects.toThrow('80 tecken')
   expect(kv.data.get(KEY)).toBe('[]')
 })
 it('allt som går att spara går att exportera och importera tillbaka', async () => {
-  const s = createStorage(fakeKV({ [KEY]: '[]' }))
+  const s = createStorage(fakeKV(EMPTY))
   await s.saveWorkout({ id: 'a', name: 'Mitt', updatedAt: 0, items: [
     { kind: 'block', id: 'b1', name: '', durationSec: 300, fromPct: 50, toPct: 70 },
     { kind: 'group', id: 'g', repeat: 4, blocks: [{ kind: 'block', id: 'b2', name: 'Upp', durationSec: 120, fromPct: 105, toPct: 105 }] }] })
