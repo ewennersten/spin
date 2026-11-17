@@ -38,7 +38,7 @@ export const tunnel: SceneFactory = () => {
         rings.setMatrixAt(i, dummy.matrix)
       }
       rings.instanceMatrix.needsUpdate = true
-      const glow = THREE.MathUtils.lerp(0.3 + 0.2 * input.intensity, 0.2, m) * (1 + 0.6 * input.pulse)
+      const glow = THREE.MathUtils.lerp(0.3 + 0.2 * input.intensity, 0.7, m) * (1 + 0.6 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },
     setParticles(fraction) {

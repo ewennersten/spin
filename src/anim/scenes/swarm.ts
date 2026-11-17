@@ -107,7 +107,7 @@ export const swarm: SceneFactory = () => {
       uniforms.uWobble.value = lerp(0.3 + 0.9 * i, 0.15, m) * treble
       uniforms.uTime.value = input.timeSec
       uniforms.uCut.value = (0.3 + 0.7 * i) * available / MAX_PARTICLES
-      uniforms.uGlow.value = lerp(0.65 + 0.65 * i, 0.3, m) * (1 + 0.8 * input.pulse)
+      uniforms.uGlow.value = lerp(0.65 + 0.65 * i, 2.5, m) * (1 + 0.8 * input.pulse)
     },
     setParticles(fraction) {
       available = Math.round(MAX_PARTICLES * fraction)

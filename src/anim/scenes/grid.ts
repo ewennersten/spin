@@ -117,7 +117,7 @@ export const grid: SceneFactory = () => {
       }
       pos.needsUpdate = true
       col.needsUpdate = true
-      const glow = lerp(0.5 + 0.6 * i, 0.2, m) * (1 + 0.7 * input.pulse)
+      const glow = lerp(0.5 + 0.6 * i, 0.8, m) * (1 + 0.7 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },
     setParticles(fraction) {
