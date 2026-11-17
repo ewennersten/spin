@@ -1064,27 +1064,29 @@ h2,
   overflow-wrap: anywhere;
 }
 
-/* Nytt block: en remsa i tridräktens vinrött över hela bredden, med zonens färg upptill och nedtill. */
+/* Nytt block: bara texten, utan platta, mitt på skärmen. Namnet tonar mot zonens färg (--zone sätts av run.ts)
+   och står i en mörk gloria; klockorna bakom tonas ned (klassen dimmed). */
 .run .banner {
   width: 100vw;
   max-width: none;
+  padding: 0 4vw;
   border-radius: 0;
-  border-block: 1.2vh solid;
-  padding: 5vh 4vw;
-  background: linear-gradient(100deg, #5a0c17f7, #170a0cf7 65%);
+  background: none;
 }
 
 .run .banner-name {
   font-size: calc(14 * var(--u));
   line-height: 1;
-  background: linear-gradient(180deg, #ffffff 40%, var(--laxrosa) 100%);
+  background: linear-gradient(180deg, #ffffff 40%, var(--zone, var(--laxrosa)) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.12em #000) drop-shadow(0 0 0.35em var(--zone, transparent));
 }
 
 .run .banner p:last-child {
   font-size: calc(7 * var(--u));
+  text-shadow: 0 0 0.08em #000, 0 0 0.3em #000, 0 0 0.6em #000c;
 }
 
 /* Nedräkningen står mitt på skärmen utan mörk bakgrund, så att animationen syns. Den glöder rött,
@@ -1147,8 +1149,8 @@ h2,
   }
 }
 
-/* Fyrverkeriet ligger mellan 3D-bilden och texten och tar inte emot musen. */
-.fireworks {
+/* Effekten efter en avslutad intervall ligger mellan 3D-bilden och texten och tar inte emot musen. */
+.drop {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -1396,4 +1398,34 @@ h2,
 .run .switch input:focus-visible {
   outline: 3px solid var(--laxrosa);
   outline-offset: 2px;
+}
+
+/* Efter vissa intervaller rycker skärmen till (quake) eller glitchar med RGB-förskjutning (glitching) en kort stund.
+   Klasserna sätts av run.ts, aldrig med ljusspärren på eller med minskade rörelser. */
+.run.quake {
+  animation: quake 350ms steps(6);
+}
+
+@keyframes quake {
+  20% { transform: translate(-0.6vw, 0.6vh); }
+  40% { transform: translate(0.5vw, -0.4vh); }
+  60% { transform: translate(-0.3vw, 0.3vh); }
+  80% { transform: translate(0.15vw, -0.1vh); }
+}
+
+.run.glitching {
+  animation: rgb-split 380ms steps(4);
+}
+
+@keyframes rgb-split {
+  0% { filter: drop-shadow(-0.5vw 0 #ff2040) drop-shadow(0.5vw 0 #20e0ff); transform: translateX(0.4vw); }
+  33% { filter: drop-shadow(0.4vw 0 #ff2040) drop-shadow(-0.4vw 0 #20e0ff); transform: translateX(-0.5vw); }
+  66% { filter: drop-shadow(-0.2vw 0 #ff2040) drop-shadow(0.2vw 0 #20e0ff); transform: translateX(0.2vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run.quake,
+  .run.glitching {
+    animation: none;
+  }
 }

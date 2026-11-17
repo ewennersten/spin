@@ -1,4 +1,4 @@
-import { createFireworks } from '../anim/fireworks'
+import { SCREEN_EFFECT, createDrops } from '../anim/drops'
 import { createStage } from '../anim/stage'
 import { SCENES } from '../anim/scenes'
 import { BeatDetector } from '../audio/beat'
@@ -82,8 +82,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let litUntil = 0
   let lostUntil = 0 // när rutan om en tappad ljudkälla försvinner
   let lostShown: Mic | null = null // källan som rutan redan har visats för
-  // Fyrverkeriet och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
-  const sky = createFireworks()
+  // Rave-effekten och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
+  const drops = createDrops()
+  let shakeTimer = 0
   let lastIndex = 0
   let cheerUntil = 0
   let lastCheer = ''
@@ -182,7 +183,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     show('done', sports(), el('h1', { textContent: 'Bra jobbat!' }), logo(), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }), link('Till biblioteket', '#/'))
   }
 
-  // Ordet visas i realtid (även med ?fart). Fyrverkeriet hör till animationerna: A och minskade rörelser stänger av det.
+  // Ordet visas i realtid (även med ?fart). Rave-effekten hör till animationerna: A och minskade rörelser stänger av den.
   function celebrate(s: Segment, last: boolean) {
     if (!last) {
       const pool = CHEERS.filter(c => c !== lastCheer)
@@ -190,8 +191,19 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       put(cheer, lastCheer)
       cheerUntil = performance.now() + 2600
     }
-    if (animOn && stage && !stage.broken && !matchMedia('(prefers-reduced-motion: reduce)').matches)
-      sky.launch(['#d7192d', '#ffffff', '#f7b1aa', zoneFor(s.toPct).color, '#ffd166'])
+    if (animOn && stage && !stage.broken && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const zone = zoneFor(s.toPct)
+      const calm = lightSwitch.checked
+      const effect = SCREEN_EFFECT[drops.launch(zone.color, zone.textColor, calm)]
+      // Några varianter skakar eller glitchar också hela skärmen en kort stund, men inte med ljusspärren på.
+      if (effect && !calm) {
+        main.classList.remove('quake', 'glitching')
+        void main.offsetWidth // startar om animationen om samma klass sattes nyss
+        main.classList.add(effect)
+        clearTimeout(shakeTimer)
+        shakeTimer = window.setTimeout(() => main.classList.remove(effect), 500)
+      }
+    }
   }
 
   function persist() {
@@ -321,13 +333,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     if (showBanner) {
       put(bannerName, seg.name)
       put(bannerInfo, `${pctText(seg.fromPct, seg.toPct)} · ${length(seg.durationSec)}`)
-      banner.style.borderColor = zoneFor(seg.fromPct).color
+      banner.style.setProperty('--zone', zoneFor(seg.fromPct).color)
     }
     countdown.hidden = n === null
     put(countdown, n === null ? '' : String(n))
     cheer.hidden = performance.now() >= cheerUntil
     // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
-    main.classList.toggle('dimmed', n !== null || !cheer.hidden)
+    main.classList.toggle('dimmed', n !== null || !cheer.hidden || showBanner)
     pep.hidden = !run || t >= pepUntil
     paused.hidden = run
     if (document.fullscreenElement) hint = false
@@ -437,7 +449,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     document.removeEventListener('visibilitychange', onVisible)
     lock?.release().catch(() => {})
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
-    sky.dispose()
+    drops.dispose()
+    clearTimeout(shakeTimer)
     stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }
 }
