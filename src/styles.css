@@ -1266,19 +1266,187 @@ h2,
   pointer-events: none;
 }
 
-/* Peppord och "Pausad" ligger över staplarna, så att klockorna och "Nästa:" syns. De visas aldrig samtidigt. */
-.run .pepword,
+/* "Pausad" ligger över staplarna, så att klockorna och "Nästa:" syns. */
 .run .paused {
   top: 83.5vh;
 }
 
-/* Pepporden står på en röd, lutande remsa. */
+/* Peppordet står mitt på skärmen utan platta, med samma kant och glöd som de andra texterna; det bakom tonas ned
+   (dimmed). data-anim väljer hur det kommer in och går ut (sätts av run.ts, se docs/ideer/peppord.md). Ordet syns i
+   fyra sekunder, och animationerna är lika långa. */
 .run .pepword {
-  font-size: calc(13 * var(--u));
-  line-height: 1.1;
+  padding: 0;
   border-radius: 0;
-  background: #d7192df2;
-  transform: translateY(-50%) skewX(-8deg);
+  background: none;
+  font-size: calc(15 * var(--u));
+  line-height: 1;
+  white-space: nowrap;
+  overflow: visible;
+  color: var(--text);
+  text-shadow: -0.03em 0 #ff2050bb, 0.03em 0 #20d8ffbb, 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.45em var(--rod);
+}
+
+.run .pepword .inner,
+.run .pepword .letter {
+  display: inline-block;
+}
+
+/* 1 Slår in och släcks som en gammal tv (skärmen rycker till, klassen quake). */
+.run .pepword[data-anim='slamtv'] .inner {
+  animation: pep-slamtv 4s both;
+}
+
+@keyframes pep-slamtv {
+  0% { transform: scale(3); filter: blur(0.15em); opacity: 0; }
+  7% { transform: scale(0.92); filter: none; opacity: 1; }
+  9% { transform: scale(1.04); }
+  11%, 80% { transform: scale(1); filter: none; opacity: 1; }
+  87% { transform: scale(1.1, 0.04); filter: brightness(3); opacity: 1; }
+  92% { transform: scale(0.02, 0.02); filter: brightness(4); opacity: 1; }
+  95%, 100% { transform: scale(0); opacity: 0; }
+}
+
+/* 2 Bokstäverna faller in en i taget och flyger iväg uppåt en i taget. */
+.run .pepword[data-anim='fall'] .letter {
+  animation:
+    pep-fall-in 600ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--n) * 50ms) both,
+    pep-fall-out 600ms ease-in calc(2800ms + var(--n) * 30ms) forwards;
+}
+
+@keyframes pep-fall-in {
+  from { transform: translateY(-40vh) rotate(-12deg); opacity: 0; }
+}
+
+@keyframes pep-fall-out {
+  to { transform: translateY(-40vh) rotate(25deg) scale(0.6); opacity: 0; }
+}
+
+/* 3 Neonskylt som hackar till när den tänds och slocknar, högst ungefär två gånger per sekund. */
+.run .pepword[data-anim='neon'] {
+  color: #ffe9ec;
+  text-shadow: 0 0 0.04em #fff, 0 0 0.18em var(--rod), 0 0 0.45em var(--rod), 0 0 0.9em var(--rod);
+}
+
+.run .pepword[data-anim='neon'] .inner {
+  animation: pep-neon 4s steps(1) both;
+}
+
+@keyframes pep-neon {
+  0% { opacity: 0; }
+  5% { opacity: 0.9; }
+  11% { opacity: 0.2; }
+  17% { opacity: 1; }
+  22% { opacity: 0.5; }
+  26%, 78% { opacity: 1; }
+  83% { opacity: 0.3; }
+  89% { opacity: 0.9; }
+  95%, 100% { opacity: 0; }
+}
+
+/* 4 Flyger in från djupet, pulserar i takt (klassen pulse) och susar förbi. */
+.run .pepword[data-anim='fly'] .inner {
+  animation: pep-fly 4s both;
+}
+
+@keyframes pep-fly {
+  0% { transform: scale(0.05); filter: blur(0.05em); opacity: 0; }
+  12% { transform: scale(1.08); filter: none; opacity: 1; }
+  16%, 78% { transform: scale(1); filter: none; opacity: 1; }
+  100% { transform: scale(6); filter: blur(0.1em); opacity: 0; }
+}
+
+.run .pepword[data-anim='fly'] .letter {
+  transition: transform 260ms ease-out;
+}
+
+.run .pepword[data-anim='fly'].pulse .letter {
+  transform: scale(1.06);
+  transition-duration: 0ms;
+}
+
+/* 5 Avkodas: bokstäverna blandas med slumpade tecken (run.ts byter dem), och ordet tonas in och ut. */
+.run .pepword[data-anim='decode'] .inner {
+  animation: pep-fade 4s both;
+}
+
+/* 6 Delas på mitten: övre halvan glider in från vänster och nedre från höger, och isär igen. */
+.run .pepword[data-anim='split'] .inner {
+  color: transparent;
+  text-shadow: none;
+}
+
+.run .pepword[data-anim='split']::before,
+.run .pepword[data-anim='split']::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+}
+
+.run .pepword[data-anim='split']::before {
+  clip-path: inset(0 0 50% 0);
+  animation: pep-split-top 4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.run .pepword[data-anim='split']::after {
+  clip-path: inset(50% 0 0 0);
+  animation: pep-split-bottom 4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes pep-split-top {
+  0% { transform: translateX(-60vw); opacity: 0; }
+  10% { transform: translateX(1vw); opacity: 1; }
+  12%, 80% { transform: none; opacity: 1; }
+  100% { transform: translateX(-60vw); opacity: 0; }
+}
+
+@keyframes pep-split-bottom {
+  0% { transform: translateX(60vw); opacity: 0; }
+  10% { transform: translateX(-1vw); opacity: 1; }
+  12%, 80% { transform: none; opacity: 1; }
+  100% { transform: translateX(60vw); opacity: 0; }
+}
+
+@keyframes pep-fade {
+  0% { opacity: 0; }
+  8%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Med ljusspärren, A och minskade rörelser tonas ordet bara in och ut. */
+.run.calm-light .pepword .inner,
+.run.still .pepword .inner {
+  animation: pep-fade 4s both;
+  color: var(--text);
+}
+
+.run.calm-light .pepword .letter,
+.run.still .pepword .letter {
+  animation: none;
+  transform: none;
+}
+
+.run.calm-light .pepword::before,
+.run.calm-light .pepword::after,
+.run.still .pepword::before,
+.run.still .pepword::after {
+  content: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run .pepword .inner {
+    animation: pep-fade 4s both !important;
+    color: var(--text) !important;
+  }
+
+  .run .pepword .letter {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .run .pepword::before,
+  .run .pepword::after {
+    content: none !important;
+  }
 }
 
 .run .paused {

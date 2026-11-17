@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { bannerVisible, buildupLevel, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { PEP_ANIMS, bannerVisible, buildupLevel, celebrates, countdownNumber, decodedLetters, jumped, pepAllowed, pepIntervalSec, pickPepAnim } from './cues'
 
 it('räknar ned de sista fem sekunderna på block från 15 sekunder', () => {
   expect(countdownNumber(15, 5001)).toBeNull()
@@ -59,4 +59,18 @@ it('bygger också upp de sista tio sekunderna före ett hårt block', () => {
   const rest = { ...hard, fromPct: 50, toPct: 50 }
   expect(buildupLevel(rest, hard, 5_000)).toBeCloseTo(0.5)
   expect(buildupLevel(rest, hard, 20_000)).toBeNull()
+})
+
+it('slumpar peppordets animation bland alla sex, aldrig samma två gånger i rad', () => {
+  const seen = new Set<string>()
+  let last = pickPepAnim(null, () => 0)
+  for (let i = 0; i < 300; i++) { const next = pickPepAnim(last); expect(next).not.toBe(last); seen.add(next); last = next }
+  expect(seen.size).toBe(PEP_ANIMS.length)
+})
+it('avkodar peppordet bokstav för bokstav in och ut', () => {
+  expect(decodedLetters(10, 0, 4000)).toBe(0)
+  expect(decodedLetters(10, 300, 4000)).toBe(5)
+  expect(decodedLetters(10, 2000, 4000)).toBe(10)
+  expect(decodedLetters(10, 3700, 4000)).toBe(5)
+  expect(decodedLetters(10, 4000, 4000)).toBe(0)
 })

@@ -16,7 +16,7 @@ import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { chartFrame, renderChart } from './chart'
-import { bannerVisible, buildupLevel, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { bannerVisible, buildupLevel, celebrates, countdownNumber, decodedLetters, jumped, pepAllowed, pepIntervalSec, pickPepAnim, type PepAnim } from './cues'
 import { el, link, logo, message, sports } from './dom'
 import { mountMicPanel } from './micPanel'
 
@@ -31,6 +31,8 @@ const itemText = (i: Item) => (i.kind === 'block' ? part(i) : `${i.repeat} × ($
 
 // Orden när ett hårt block är klart.
 const CHEERS = ['Starkt jobbat!', 'Grymt kört!', 'Snyggt!', 'Vilken kraft!', 'Ni äger!', 'Klart – starkt!']
+const PEP_MS = 4000 // så länge ett peppord syns
+const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ0123456789#%&*?!' // tecknen som blandas in när ordet avkodas
 
 // Texten skrivs bara när den ändras, så att varje bildruta inte skriver om sidan.
 const put = (e: HTMLElement, text: string) => { if (e.textContent !== text) e.textContent = text }
@@ -76,6 +78,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let pepSpread = 1
   let pepUntil = 0
   let lastWord = ''
+  let pepAnim: PepAnim | null = null
+  let pepStart = 0 // när ordet dök upp, i verklig tid, för avkodningen
   // Ljudet: skärmen äger mikrofonen. Med givet tillstånd öppnas den vid första tangenttryckningen eller klicket.
   const source = new BeatSource(new BeatDetector())
   let mic: Mic | null = null
@@ -187,6 +191,45 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     show('done', sports(), el('h1', { textContent: 'Bra jobbat!' }), logo(), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }), link('Till biblioteket', '#/'))
   }
 
+  // Peppordet mitt på skärmen, med en slumpad animation in och ut (se .pepword i styles.css). Bokstäverna ligger i
+  // egna element, så att de kan falla in en i taget. Med ljusspärren, A och minskade rörelser tonas ordet bara in och ut.
+  function showPep(word: string) {
+    pepAnim = pickPepAnim(pepAnim)
+    pepStart = performance.now()
+    const letters = [...word].map((ch, i) => {
+      const l = el('span', { className: 'letter', textContent: ch === ' ' ? '\u00a0' : ch })
+      l.style.setProperty('--n', String(i)) // ordningen, så att bokstäverna kan falla in en i taget
+      return l
+    })
+    const inner = el('span', { className: 'inner' })
+    inner.append(...letters)
+    pep.dataset.text = word
+    pep.replaceChildren(inner)
+    delete pep.dataset.anim
+    void pep.offsetWidth // startar om animationen
+    pep.dataset.anim = pepAnim
+    const calm = lightSwitch.checked || !animOn || matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (pepAnim === 'slamtv' && !calm) {
+      main.classList.remove('quake')
+      void main.offsetWidth
+      main.classList.add('quake')
+      clearTimeout(shakeTimer)
+      shakeTimer = window.setTimeout(() => main.classList.remove('quake'), 500)
+    }
+  }
+
+  // Avkodningen: bokstäverna efter de som redan landat visas som slumpade tecken.
+  function decode() {
+    const calm = lightSwitch.checked || !animOn || matchMedia('(prefers-reduced-motion: reduce)').matches
+    const letters = pep.querySelectorAll<HTMLSpanElement>('.letter')
+    const word = [...(pep.dataset.text ?? '')]
+    const done = calm ? word.length : decodedLetters(word.length, performance.now() - pepStart, PEP_MS)
+    letters.forEach((l, i) => {
+      const ch = i < done || word[i] === ' ' ? word[i] : GLYPHS[Math.floor(Math.random() * GLYPHS.length)]
+      l.textContent = ch === ' ' ? '\u00a0' : ch
+    })
+  }
+
   // Ordet visas i realtid (även med ?fart). Rave-effekten hör till animationerna: A och minskade rörelser stänger av den.
   function celebrate(s: Segment, last: boolean) {
     if (!last) {
@@ -272,6 +315,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const pulse = t < litUntil && clock.running && !calmZone
     current.classList.toggle('pulse', pulse)
     live.node.classList.toggle('pulse', pulse)
+    pep.classList.toggle('pulse', pulse)
   }
 
   // Ett nytt tryck på en knapp öppnar källan på nytt, till exempel efter att mikrofonen har kopplats ur.
@@ -340,10 +384,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       const others = words.filter(x => x !== lastWord)
       const pool = others.length ? others : words
       lastWord = pool[Math.floor(Math.random() * pool.length)]
-      put(pep, lastWord)
+      showPep(lastWord)
       pepFrom = pos
       pepSpread = 0.7 + Math.random() * 0.6
-      pepUntil = t + 4000
+      pepUntil = t + PEP_MS
     }
 
     // Under paus visas bara "Pausad" stort, så att inget annat ligger över eller under den.
@@ -366,8 +410,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     disco.draw(!!motion && run && calmZone, zone.textColor, lightSwitch.checked, performance.now())
     cheer.hidden = performance.now() >= cheerUntil
     // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
-    main.classList.toggle('dimmed', n !== null || !cheer.hidden || showBanner)
     pep.hidden = !run || t >= pepUntil
+    main.classList.toggle('dimmed', n !== null || !cheer.hidden || showBanner || !pep.hidden)
+    if (!pep.hidden && pepAnim === 'decode') decode()
     paused.hidden = run
     if (document.fullscreenElement) hint = false
     fullscreenHint.hidden = !hint

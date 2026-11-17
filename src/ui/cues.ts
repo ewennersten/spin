@@ -17,6 +17,23 @@ export function pepIntervalSec(pctNow: number): number | null {
   return Math.max(25, 90 - (pctNow - 88) * 65 / 32)
 }
 
+// Peppordets animationer (se docs/ideer/peppord.md och .pepword i styles.css). En slumpas varje gång, aldrig samma
+// två gånger i rad.
+export const PEP_ANIMS = ['slamtv', 'fall', 'neon', 'fly', 'decode', 'split'] as const
+export type PepAnim = (typeof PEP_ANIMS)[number]
+export function pickPepAnim(last: PepAnim | null, random: () => number = Math.random): PepAnim {
+  const pool = PEP_ANIMS.filter(a => a !== last)
+  return pool[Math.floor(random() * pool.length)]
+}
+
+// Hur långt avkodningen har kommit: hur många bokstäver från början som visas rätt, när ordet har syntes i ms
+// av totalt ms. Bokstäverna landar en i taget under första 0,6 s och blandas sönder bakifrån under sista 0,6 s.
+export function decodedLetters(length: number, ms: number, totalMs: number): number {
+  const into = Math.min(1, ms / 600)
+  const out = Math.min(1, Math.max(0, (ms - (totalMs - 600)) / 600))
+  return Math.round(length * into * (1 - out))
+}
+
 // Ett ord syns i fyra sekunder, så det får börja först när mer än 14 s är kvar: inget ord under de sista tio.
 export function pepAllowed(pctNow: number, elapsedMs: number, remainingMs: number): boolean {
   return pctNow >= 88 && !bannerVisible(elapsedMs) && remainingMs > 14000
