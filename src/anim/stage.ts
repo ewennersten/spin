@@ -119,6 +119,7 @@ export function createStage(options: StageOptions): Stage | null {
   let unmeasured = 0
   let intensity = 0
   let calmMix = 1
+  let edgeShown = 0
   let visible = true
   let dead = false
   let disposed = false
@@ -289,7 +290,9 @@ export function createStage(options: StageOptions): Stage | null {
     quad.render(renderer)
     if (meterEl && ok) record(f.nowMs, measured * scale)
 
-    edge.style.opacity = String(edgeOpacity(f.pctNow, p))
+    // Lugn i vila och paus, följer bildens toning, och tänds mjukt (tau 150 ms, kortare än pulsens 250 ms).
+    edgeShown = follow(edgeShown, edgeOpacity(f.pctNow, p) * (1 - calmMix) * fade, dtMs, 150)
+    edge.style.opacity = String(edgeShown)
     edge.style.color = zone.color
 
     if (meterEl) {
@@ -332,7 +335,10 @@ export function createStage(options: StageOptions): Stage | null {
       }
       visible = on
       show(on && !dead)
-      if (!on) edge.style.opacity = '0'
+      if (!on) {
+        edgeShown = 0
+        edge.style.opacity = '0'
+      }
     },
     dispose() {
       if (disposed) return
