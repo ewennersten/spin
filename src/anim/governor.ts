@@ -3,8 +3,8 @@ export const MAX_MEAN = 0.2
 
 /**
  * Håller bildens medelljus (relativ luminans enligt WCAG) inom reglerna: högst +0,08 per 400 ms och aldrig över 0,20.
- * Mätningen kommer en eller två bildrutor efter bilden (läses asynkront i scenen), men slagpulsens
- * stigtid på 80 ms gör att ljuset hinner stiga mycket lite innan förstärkningen tar.
+ * Mätningen görs i samma bildruta som bilden visas (synkron läsning i stage.ts), så förstärkningen gäller
+ * just den bild som mättes.
  *
  * Kontrakt: scenen skickar in det uppmätta ljuset gånger sin egen toning (scenbyte, döljning), och 0 medan
  * scenen är dold. Då gäller spärren även när bilden tonar upp från svart eller visas igen.

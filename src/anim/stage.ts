@@ -44,20 +44,22 @@ void main() {
 }`,
 }
 
-// Bilden efter OutputPass är sRGB-kodad. Varje ruta i 16×9 blir medel av relativ luminans (WCAG) över 24×24 punkter.
-const METER_FRAGMENT = `uniform sampler2D tDiffuse; varying vec2 vUv;
+// Bilden efter OutputPass är sRGB-kodad. Varje ruta i 16×9 blir medel av relativ luminans (WCAG) över 8×8 prov.
+// Varje prov läses mitt i en bildpunkt och avkodas före medelvärdet: en bilinjär blandning i sRGB ger för lågt ljus.
+const METER_FRAGMENT = `uniform sampler2D tDiffuse; uniform vec2 uSize; varying vec2 vUv;
 ${SRGB}
 void main() {
   vec2 cell = vec2(1.0 / ${METER_W}.0, 1.0 / ${METER_H}.0);
   vec2 origin = vUv - 0.5 * cell;
   float sum = 0.0;
-  for (int y = 0; y < 24; y++) {
-    for (int x = 0; x < 24; x++) {
-      vec3 c = clamp(texture2D(tDiffuse, origin + (vec2(float(x), float(y)) + 0.5) / 24.0 * cell).rgb, 0.0, 1.0);
+  for (int y = 0; y < 8; y++) {
+    for (int x = 0; x < 8; x++) {
+      vec2 p = origin + (vec2(float(x), float(y)) + 0.5) / 8.0 * cell;
+      vec3 c = clamp(texture2D(tDiffuse, (floor(p * uSize) + 0.5) / uSize).rgb, 0.0, 1.0);
       sum += dot(toLinear(c), vec3(0.2126, 0.7152, 0.0722));
     }
   }
-  gl_FragColor = vec4(vec3(sum / 576.0), 1.0);
+  gl_FragColor = vec4(vec3(sum / 64.0), 1.0);
 }`
 
 // three.js kodar inte om färgerna i en egen ShaderMaterial, så avkodning och kodning sker här.
@@ -87,7 +89,7 @@ export function createStage(options: StageOptions): Stage | null {
   for (const pass of [renderPass, bloom, glitch, new OutputPass()]) composer.addPass(pass)
 
   const meterTarget = new THREE.WebGLRenderTarget(METER_W, METER_H, { depthBuffer: false })
-  const meterMat = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null } }, vertexShader: VERTEX, fragmentShader: METER_FRAGMENT })
+  const meterMat = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, uSize: { value: new THREE.Vector2(1, 1) } }, vertexShader: VERTEX, fragmentShader: METER_FRAGMENT })
   const finalMat = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, uScale: { value: 0 } }, vertexShader: VERTEX, fragmentShader: FINAL_FRAGMENT })
   const quad = new FullScreenQuad(meterMat)
   const pixels = new Uint8Array(METER_W * METER_H * 4)
@@ -105,13 +107,15 @@ export function createStage(options: StageOptions): Stage | null {
   const director = new SceneDirector(SCENES.length, Math.random, forced)
   const pulse = new BeatPulse()
   const bands = new BandLevels()
-  const governor = new LightGovernor()
+  let governor = new LightGovernor()
   const quality = new QualityController()
 
   let current: Scene | null = null
   let index = -1
   let level = quality.level
   let fade = 0
+  let gain = 1
+  let unmeasured = 0
   let intensity = 0
   let visible = true
   let dead = false
@@ -230,29 +234,48 @@ export function createStage(options: StageOptions): Stage | null {
     camera.position.add(shake)
 
     bloom.strength = (0.3 + 1.2 * intensity) * (calm ? 0.5 : 1)
-    glitch.enabled = zone.name === 'VO2max'
+    glitch.enabled = !calm && zone.name === 'VO2max'
     glitch.uniforms.uOffset.value = 0.002 + 0.006 * p
     glitch.uniforms.uBars.value = p > 0.6 ? 1 : 0
 
     composer.render(dtMs / 1000)
     const image = composer.readBuffer.texture
     meterMat.uniforms.tDiffuse.value = image
+    meterMat.uniforms.uSize.value.set(composer.readBuffer.width, composer.readBuffer.height)
     quad.material = meterMat
     renderer.setRenderTarget(meterTarget)
     quad.render(renderer)
     // Synkron läsning av just den här bilden innan den visas. En asynkron läsning kom 1 till 3 bildrutor
     // efter bilden, och slagpulsen hann då ta ljuset till 0,265 och stigningen till 0,135 (uppmätt).
-    renderer.readRenderTargetPixels(meterTarget, 0, 0, METER_W, METER_H, pixels)
+    // Mätshadern skriver alfa 1; står det inte 255 efter läsningen är bildrutan omätt.
+    pixels.fill(0)
+    let ok = true
+    try {
+      renderer.readRenderTargetPixels(meterTarget, 0, 0, METER_W, METER_H, pixels)
+    } catch {
+      ok = false
+    }
     let sum = 0
-    for (let i = 0; i < pixels.length; i += 4) sum += pixels[i]
+    for (let i = 0; i < pixels.length; i += 4) {
+      sum += pixels[i]
+      if (pixels[i + 3] !== 255) ok = false
+    }
     const measured = sum / 255 / (METER_W * METER_H)
-    const scale = fade * governor.update(measured * fade, dtMs)
+    if (ok) {
+      unmeasured = 0
+      gain = governor.update(measured * fade, dtMs)
+    } else if (++unmeasured >= 3) {
+      // Utan mätning finns ingen spärr: dölj för resten av vyn, som vid tappad kontext.
+      onLost()
+      return
+    }
+    const scale = fade * gain
     finalMat.uniforms.tDiffuse.value = image
     finalMat.uniforms.uScale.value = scale
     quad.material = finalMat
     renderer.setRenderTarget(null)
     quad.render(renderer)
-    if (meterEl) record(f.nowMs, measured * scale)
+    if (meterEl && ok) record(f.nowMs, measured * scale)
 
     edge.style.opacity = String(edgeOpacity(f.pctNow, p))
     edge.style.color = zone.color
@@ -287,7 +310,13 @@ export function createStage(options: StageOptions): Stage | null {
       }
     },
     setVisible(on) {
-      if (on && !visible) fade = 0 // tonar upp igen, så att ljusspärren gäller från svart
+      if (!on) {
+        // Bilden tonar alltid upp från svart under spärren när den visas igen, även utan frame under tiden.
+        fade = 0
+        governor = new LightGovernor()
+      } else if (!visible) {
+        lastMs = null // första bildrutan efter visningen räknar inget glapp
+      }
       visible = on
       show(on && !dead)
       if (!on) edge.style.opacity = '0'
