@@ -26,7 +26,7 @@ Node.js måste finnas på datorn. Saknas det: hämta LTS-versionen från nodejs.
 
 Låt terminalfönstret vara öppet så länge appen används. Du stänger appen genom att trycka Ctrl+C i terminalen.
 
-Säger terminalen att port 5173 redan används är appen redan igång i ett annat terminalfönster. Använd det fönstret, eller stäng det först.
+Säger terminalen att port 5173 är upptagen ("Port 5173 is already in use") betyder det att något annat program använder porten. Det kan vara den här appen i ett annat terminalfönster, eller ett helt annat program. Öppna `http://localhost:5173/` och se efter vad som visas innan du stänger något: är det den här appen kan du använda den direkt.
 
 ## Starta alltid på samma sätt
 
@@ -42,23 +42,25 @@ Exporten innehåller passen. Peppord och mikrofonens inställningar följer inte
 
 ## Locket ska vara öppet
 
-Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen när locket fälls ned, och då går appen över till intern takt. Står det fortfarande Intern takt när locket har öppnats igen och musiken spelar, se "Om mikrofonen försvinner" nedan.
+Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen när locket fälls ned, och då går appen över till intern takt. Har locket ändå fällts ned och det står Intern takt fast musiken spelar: ladda om sidan, se "Om mikrofonen försvinner" nedan.
 
 ## Tangenterna
 
 | Tangent | Gör |
 |---------|-----|
-| Mellanslag | I överblicken: startar passet. Under passet: pausar och fortsätter. |
-| Pil höger | Hoppar till nästa block. I sista blocket går passet till slut. |
+| Mellanslag | I överblicken: startar passet, även när reglaget eller ett talfält i mikrofonpanelen har fokus. Under passet: pausar och fortsätter. Står fokus på en knapp trycker mellanslag på knappen. |
+| Pil höger | Hoppar till nästa block. I sista blocket gör den ingenting. |
 | Pil vänster | Går tillbaka till början av blocket. Under blockets första tre sekunder: till föregående block. |
 | Pil upp, pil ned | Under passet: höjer eller sänker mikrofonens känslighet ett steg. Värdet sparas. |
 | F | Fullskärm av och på. |
 | M | Under passet: växlar mellan mikrofonen och den interna takten. Mikrofonen är fortfarande öppen, så webbläsarens mikrofonsymbol lyser kvar. Valet sparas inte: efter en omladdning används mikrofonen igen. |
-| Q | Avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
+| Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket**. Under passet: avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
 
 Esc lämnar fullskärm men avslutar inte passet.
 
 Laddas sidan om mitt i passet fortsätter klockan där den var. Tryck F för att få fullskärm igen.
+
+Ett pass som lämnades utan Q, till exempel med bakåtknappen eller en stängd flik, fortsätter där det var när du trycker **Starta** vid samma pass igen inom fyra timmar, om passets tid inte redan har gått ut. Vill du börja om från början: avsluta passet med Q och Enter, och tryck **Starta** igen.
 
 ## Mikrofonen
 
@@ -71,9 +73,9 @@ Klicka på **Starta** vid ett pass i biblioteket. Överblicken som då visas, f�
 - **Känslighet** (1 till 10): högre ger fler slag, lägre ger färre.
 - **Basband** är de frekvenser där appen letar efter bastrumman, från 20 till 500 Hz. Från början 40 till 150 Hz.
 
-Reglaget sparas direkt. Ett talfält gäller och sparas först när du trycker Enter eller Tab eller klickar utanför fältet. Inställningarna finns kvar nästa gång.
+Reglaget sparas direkt. Ett talfält gäller och sparas först när du trycker Enter eller Tab, klickar utanför fältet eller startar passet med mellanslag. Inställningarna finns kvar nästa gång.
 
-Efter ett klick på **Slå på mikrofonen** startar mellanslag passet som vanligt. Har du använt reglaget eller ett talfält går tangenterna dit i stället. Klicka då någonstans utanför panelen innan du startar passet med mellanslag.
+Mellanslag startar passet även när reglaget eller ett talfält har fokus. Pilarna går till reglaget eller talfältet så länge det har fokus.
 
 Under passet visar en liten ruta nere till höger läget. En fylld prick blinkar på slagen från mikrofonen, och en tom ring blinkar i den interna takten.
 
@@ -89,7 +91,7 @@ Samma meddelande visas om macOS inte tillåter webbläsaren att använda mikrofo
 
 ### Om mikrofonen försvinner
 
-Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällts ned eller en mikrofon har kopplats ur, kommer den inte tillbaka av sig själv. Ladda om sidan. Klockan fortsätter där den var, och mikrofonen startar vid första tangenttryckningen.
+Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällts ned eller en mikrofon har kopplats ur, går appen över till intern takt. Håll därför locket öppet under passet. Står det Intern takt fast musiken spelar: ladda om sidan. Klockan fortsätter där den var, och mikrofonen startar vid första tangenttryckningen.
 
 ## Prova takten i salen
 
