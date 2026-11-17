@@ -83,7 +83,7 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     scale.replaceChildren(...scaleTicks(top).map(t => {
       const y = H - t / top * H
       // Linjen är en bildpunkt tjock oavsett hur mycket bilden tänjs. FTP-linjen är ljusare.
-      svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#f1efe8', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
+      svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#fff6f4', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
       const label = document.createElement('span')
       label.textContent = `${t} %`
       label.style.top = `${y / H * 100}%`
@@ -92,8 +92,8 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     }))
   }
 
-  const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#0b0b0b', opacity: 0.6, display: 'none' })
-  const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#f1efe8', 'stroke-width': 4, display: 'none' })
+  const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#000000', opacity: 0.6, display: 'none' })
+  const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#fff6f4', 'stroke-width': 4, display: 'none' })
   svg.append(dim, line)
 
   const total = totalDuration(segments)

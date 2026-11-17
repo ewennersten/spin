@@ -6,6 +6,7 @@ import { LIMITS, validateWorkout } from '../model/validate'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { chartFrame, renderChart } from './chart'
+import { clubHeader } from './dom'
 
 // Samma små hjälpare som i library.ts, som inte exporterar dem.
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}): HTMLElementTagNameMap[K] =>
@@ -248,7 +249,9 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   })
 
   const toolbar = el('div', { className: 'toolbar' })
-  toolbar.append(link('Starta passet', `#/run/${w.id}`), link('Till biblioteket', '#/'), status)
+  const startLink = link('Starta passet', `#/run/${w.id}`)
+  startLink.classList.add('primary')
+  toolbar.append(startLink, link('Till biblioteket', '#/'), status)
   const totalRow = el('p', { className: 'total', textContent: 'Total tid ' })
   totalRow.append(total)
   const addBlock = button('Lägg till block', () => { w.items = [...w.items, newBlock()]; restructure([]) })
@@ -256,7 +259,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   const adds = el('div', { className: 'toolbar' })
   adds.append(addBlock, button('Lägg till grupp', () => { w.items = [...w.items, newGroup()]; restructure([]) }))
 
-  main.append(el('h1', { textContent: 'Redigera pass' }), toolbar, nameRow, totalRow, frame, error, list, adds)
+  main.append(toolbar, nameRow, totalRow, frame, error, list, adds)
   renderList()
   check()
 
@@ -273,7 +276,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
 export function editorView(store: Store): View {
   return (root, id) => {
     const main = el('main', { className: 'editor' })
-    root.append(main)
+    root.append(clubHeader('Redigera pass'), main)
     const back = () => link('Till biblioteket', '#/')
     let alive = true
     let leave = () => {}

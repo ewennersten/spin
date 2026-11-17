@@ -1,3 +1,6 @@
+// Typsnittet följer med appen, så att det fungerar i salen utan internet.
+import '@fontsource-variable/archivo/wdth.css'
+import '@fontsource-variable/archivo/wdth-italic.css'
 import './styles.css'
 import { parseRoute, type Route, type View } from './router'
 import { createStorage, type Store } from './storage/storage'

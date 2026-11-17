@@ -1,40 +1,148 @@
+/* Färgerna kommer från klubbens tridräkt: rött som tonar via vinrött ned i svart. Allt är mörkt, för salen är mörk. */
 :root {
-  --bg: #0b0b0b;
-  --text: #f1efe8;
-  --muted: #b4b2a9;
+  --svart: #000000;
+  --natt: #170a0c;   /* plattor; samma färg som PLATE i src/ui/contrast.ts */
+  --vinrod: #5a0c17;
+  --rod: #d7192d;    /* loggans rött */
+  --laxrosa: #f7b1aa;
+  --text: #fff6f4;
+  --muted: #c9b8b6;
+  --font: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: dark;
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--svart);
   color: var(--text);
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font);
+  font-stretch: 100%;
+  line-height: 1.4;
+}
+
+/* Rubriker i smal, tung kursiv, som siffror på en tävlingsnapp. */
+h1,
+h2,
+.workout .name {
+  font-stretch: 72%;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+h1 {
+  font-style: italic;
+}
+
+:focus-visible {
+  outline: 3px solid var(--laxrosa);
+  outline-offset: 2px;
+}
+
+/* Loggan är röd. Mot rött och svart görs den vit. */
+.logo {
+  display: block;
+  width: auto;
+  filter: brightness(0) invert(1);
+}
+
+.sports {
+  display: block;
+  width: auto;
+}
+
+/* Sidhuvudet i biblioteket och redigeraren: tridräktens övertoning. */
+.club {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 36px max(16px, calc((100% - 968px) / 2)) 28px;
+  background: linear-gradient(180deg, var(--rod) 0%, #a5111f 34%, var(--vinrod) 62%, var(--svart) 100%);
+}
+
+.club .logo {
+  height: clamp(40px, 7vw, 64px);
+}
+
+.club h1 {
+  margin: 4px 0 0;
+  font-size: clamp(48px, 11vw, 112px);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.club .tagline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.club .sports {
+  height: 32px;
 }
 
 .library,
 .editor {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 32px 16px;
+  padding: 8px 16px 64px;
 }
 
+.library h2 {
+  margin: 24px 0 16px;
+  font-size: 36px;
+}
+
+.pep h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+/* Knapparna är piller. Den viktigaste (Starta) är röd och fylld, resten är konturer. */
 .library button,
 .editor button,
-.editor .button {
+.button,
+.run #mic-panel button {
   font: inherit;
-  padding: 6px 14px;
-  border: 1px solid #ffffff33;
-  border-radius: 6px;
-  background: #ffffff14;
+  font-weight: 600;
+  padding: 7px 18px;
+  border: 1.5px solid #ffffff40;
+  border-radius: 999px;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   text-decoration: none;
+  display: inline-block;
+}
+
+.library button:hover:not(:disabled),
+.editor button:hover:not(:disabled),
+.button:hover,
+.run #mic-panel button:hover {
+  border-color: var(--text);
+  background: #ffffff12;
+}
+
+.library .primary,
+.editor .primary {
+  border-color: var(--rod);
+  background: var(--rod);
+  font-weight: 800;
+  padding-inline: 26px;
+}
+
+.library .primary:hover:not(:disabled),
+.editor .primary:hover {
+  border-color: #ef2b40;
+  background: #ef2b40;
 }
 
 .library button:disabled,
 .editor button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -51,11 +159,12 @@ body {
 .status {
   min-height: 1lh;
   overflow-wrap: anywhere;
+  color: var(--muted);
 }
 
 .workouts {
   list-style: none;
-  margin: 24px 0;
+  margin: 8px 0 24px;
   padding: 0;
 }
 
@@ -63,22 +172,33 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 24px;
-  padding: 16px 0;
+  gap: 12px 28px;
+  padding: 20px 12px;
   border-top: 1px solid #ffffff1f;
+  border-left: 4px solid transparent;
+}
+
+.workout:last-child {
+  border-bottom: 1px solid #ffffff1f;
+}
+
+.workout:hover,
+.workout:focus-within {
+  border-left-color: var(--rod);
+  background: linear-gradient(90deg, #5a0c1766, transparent 70%);
 }
 
 .workout .info {
   flex: 1 1 200px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .workout .name {
-  font-weight: 600;
+  font-size: 30px;
 }
 
 .workout .time {
@@ -88,8 +208,8 @@ body {
 
 .workout svg {
   flex: none;
-  width: 240px;
-  height: 48px;
+  width: 280px;
+  height: 56px;
 }
 
 .note {
@@ -97,7 +217,7 @@ body {
 }
 
 .pep {
-  margin-top: 40px;
+  margin-top: 48px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -108,16 +228,39 @@ body {
   color: var(--muted);
 }
 
+/* Fälten är mörka med ljus kant, som knapparna. */
+.pep textarea,
+.field input,
+.run #mic-panel input[type='number'] {
+  font: inherit;
+  color: var(--text);
+  background: #ffffff0d;
+  border: 1.5px solid #ffffff33;
+  border-radius: 8px;
+}
+
 .pep textarea {
   box-sizing: border-box;
   width: 100%;
   max-width: 480px;
-  font: inherit;
+  padding: 8px 10px;
+}
+
+.field input:hover,
+.pep textarea:hover {
+  border-color: #ffffff66;
+}
+
+.field input[aria-invalid] {
+  border-color: #f09595;
+}
+
+.editor .toolbar {
+  margin-top: 16px;
 }
 
 .editor .toolbar .status {
   margin: 0;
-  color: var(--muted);
 }
 
 .field {
@@ -129,17 +272,18 @@ body {
 }
 
 .field input {
-  font: inherit;
   font-size: 1rem;
-  padding: 4px 6px;
+  padding: 5px 8px;
 }
 
 .passname {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .passname input {
   max-width: 480px;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .block input[type='text'] {
@@ -153,6 +297,10 @@ body {
 
 .total {
   font-variant-numeric: tabular-nums;
+}
+
+.editor > .total {
+  color: var(--muted);
 }
 
 .editor .chart-frame {
@@ -189,7 +337,7 @@ body {
 
 .scale .ftp {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .error {
@@ -233,16 +381,19 @@ body {
   flex: 0 0 8em;
   align-self: center;
   color: var(--muted);
+  font-weight: 600;
 }
 
+/* En grupp upprepas, så den hålls ihop av ett rött streck till vänster. */
 .group {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  padding: 12px;
-  border: 1px solid #ffffff33;
-  border-radius: 8px;
+  padding: 12px 12px 12px 16px;
+  border-left: 4px solid var(--rod);
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(90deg, #5a0c1755, #ffffff05 60%);
 }
 
 /* Skärmen fyller fönstret. Ett sparfel från redigeraren (.leave-error) står kvar överst och tar sin höjd från skärmen. */
@@ -289,16 +440,11 @@ body {
 }
 
 .run h1 {
-  font-size: calc(7 * var(--u));
+  font-size: calc(9 * var(--u));
 }
 
 .run .button {
-  padding: 1vh 2vw;
-  border: 1px solid #ffffff33;
-  border-radius: 6px;
-  background: #ffffff14;
-  color: var(--text);
-  text-decoration: none;
+  padding: 1vh 2.5vw;
 }
 
 .run .chart {
@@ -316,6 +462,23 @@ body {
   color: var(--muted);
 }
 
+/* Överblicken visas i salen före start: loggan uppe till höger, passets namn stort. */
+.run[data-mode='overview'] {
+  background: radial-gradient(ellipse 90% 45% at 100% 0%, #5a0c17aa, transparent 70%);
+}
+
+.run[data-mode='overview'] > .logo {
+  position: absolute;
+  top: 4vh;
+  right: 4vw;
+  height: calc(7 * var(--u));
+}
+
+.run[data-mode='overview'] h1 {
+  max-width: 70vw;
+  font-size: calc(11 * var(--u));
+}
+
 .run[data-mode='overview'] .chart {
   height: 33vh;
 }
@@ -326,19 +489,41 @@ body {
   font-size: 3.5vh;
 }
 
-.run .start {
-  font-size: calc(5 * var(--u));
-  font-weight: 600;
+.run .contents li {
+  padding-left: 1em;
+  background: linear-gradient(var(--rod), var(--rod)) 0 0.55em / 0.45em 0.2em no-repeat;
 }
 
+/* Uppmaningen står på en röd, lutande remsa. */
+.run .start {
+  padding: 0.15em 0.7em;
+  background: var(--rod);
+  font-size: calc(5 * var(--u));
+  font-stretch: 75%;
+  font-style: italic;
+  font-weight: 850;
+  transform: skewX(-8deg);
+}
+
+/* Efter passet: sportcirklarna, tackraden och loggan, mot tridräktens rött som stiger nedifrån. */
 .run[data-mode='done'] {
   justify-content: center;
   align-items: center;
-  gap: 5vh;
+  gap: 4vh;
+  text-align: center;
+  background: radial-gradient(ellipse 110% 60% at 50% 115%, var(--rod), var(--vinrod) 45%, transparent 80%);
 }
 
 .run[data-mode='done'] h1 {
-  font-size: calc(16 * var(--u));
+  font-size: calc(20 * var(--u));
+}
+
+.run[data-mode='done'] .sports {
+  height: calc(10 * var(--u));
+}
+
+.run[data-mode='done'] .logo {
+  height: calc(8 * var(--u));
 }
 
 .run[data-mode='live'] {
@@ -393,9 +578,21 @@ body {
   flex: 1 1 auto;
 }
 
+/* Blockets namn, procenten och nedräkningen i smal tung stil, så att siffrorna blir höga utan att ta bredd. */
+.run .name,
+.run .pct,
+.run .remaining,
+.run .countdown,
+.run .banner-name,
+.run .pepword,
+.run .paused {
+  font-stretch: 72%;
+  font-weight: 850;
+}
+
 .run .name {
-  font-size: calc(9 * var(--u));
-  font-weight: 700;
+  font-size: calc(10 * var(--u));
+  font-style: italic;
 }
 
 .run .pctrow {
@@ -403,9 +600,8 @@ body {
 }
 
 .run .pct {
-  font-size: calc(15 * var(--u));
-  font-weight: 700;
-  line-height: 1.05;
+  font-size: calc(17 * var(--u));
+  line-height: 1;
 }
 
 .run .next {
@@ -413,9 +609,8 @@ body {
 }
 
 .run .remaining {
-  font-size: calc(24 * var(--u));
-  font-weight: 700;
-  line-height: 1;
+  font-size: calc(28 * var(--u));
+  line-height: 0.95;
 }
 
 .run[data-mode='live'] .chart {
@@ -430,7 +625,7 @@ body {
 .run[data-mode='live'] .beat,
 .run[data-mode='live'] .error:not(:empty),
 #app:has(> .run[data-mode='live']) > .leave-error {
-  background: #0b0b0beb;
+  background: #170a0ceb;
   border-radius: 1.5vh;
 }
 
@@ -439,6 +634,11 @@ body {
 .run[data-mode='live'] .error:not(:empty),
 #app:has(> .run[data-mode='live']) > .leave-error {
   padding: 1vh 2vw;
+}
+
+/* Plattan med klockorna har ett rött streck till vänster, som en startnummerlapp. */
+.run[data-mode='live'] .current {
+  border-left: 1vh solid var(--rod);
 }
 
 .run[data-mode='live'] .chart {
@@ -463,23 +663,25 @@ body {
   margin: 0 auto;
   padding: 2vh 4vw;
   border-radius: 2vh;
-  background: #0b0b0bf2;
+  background: #170a0cf2;
   text-align: center;
   overflow-wrap: anywhere;
 }
 
+/* Nytt block: en remsa i tridräktens vinrött över hela bredden, med zonens färg upptill och nedtill. */
 .run .banner {
   width: 100vw;
   max-width: none;
   border-radius: 0;
   border-block: 1.2vh solid;
   padding: 5vh 4vw;
-  background: #161616f7;
+  background: linear-gradient(100deg, #5a0c17f7, #170a0cf7 65%);
 }
 
 .run .banner-name {
-  font-size: calc(12 * var(--u));
-  font-weight: 800;
+  font-size: calc(14 * var(--u));
+  font-style: italic;
+  line-height: 1;
 }
 
 .run .banner p:last-child {
@@ -496,9 +698,8 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  background: #0b0b0bd9;
-  font-size: calc(50 * var(--u));
-  font-weight: 800;
+  background: #000000d9;
+  font-size: calc(60 * var(--u));
   line-height: 1;
 }
 
@@ -508,28 +709,36 @@ body {
   top: 83.5vh;
 }
 
+/* Pepporden står på en röd, lutande remsa. */
 .run .pepword {
-  font-size: calc(12 * var(--u));
-  font-weight: 800;
+  font-size: calc(13 * var(--u));
+  font-style: italic;
+  line-height: 1.1;
+  border-radius: 0;
+  background: #d7192df2;
+  transform: translateY(-50%) skewX(-8deg);
 }
 
 .run .paused {
-  font-size: calc(16 * var(--u));
-  font-weight: 800;
-  border: 0.8vh solid var(--text);
+  font-size: calc(18 * var(--u));
+  line-height: 1.1;
+  border: 0.8vh solid var(--rod);
 }
 
 /* Rutan tonar ned resten av skärmen. */
 .run .quit {
   z-index: 1;
   font-size: calc(5 * var(--u));
-  border: 0.6vh solid var(--text);
-  box-shadow: 0 0 0 100vmax #0b0b0bb3;
+  border: 0.6vh solid var(--rod);
+  box-shadow: 0 0 0 100vmax #000000b3;
 }
 
 .run .quit strong {
   display: block;
   font-size: calc(9 * var(--u));
+  font-stretch: 72%;
+  font-style: italic;
+  font-weight: 850;
 }
 
 .run .fullscreen-hint {
@@ -538,7 +747,7 @@ body {
   padding: 1.5vh 3vw;
   font-size: calc(4 * var(--u));
   font-weight: 700;
-  border: 0.4vh solid var(--text);
+  border: 0.4vh solid var(--laxrosa);
 }
 
 /* 3D-bilden bakom skärmen och kantramen framför den. Ingen av dem tar emot musen. */
@@ -573,7 +782,7 @@ body {
   z-index: 3;
   padding: 0.4em 0.7em;
   border-radius: 1vh;
-  background: #0b0b0beb;
+  background: #170a0ceb;
   color: var(--text);
   font-size: 2vh;
   font-variant-numeric: tabular-nums;
@@ -602,22 +811,17 @@ body {
   gap: 0.6em 1.5em;
 }
 
-.run #mic-panel button,
-.run #mic-panel input {
-  font: inherit;
-  color: var(--text);
-}
-
 .run #mic-panel button {
-  padding: 0.3em 0.8em;
-  border: 1px solid #ffffff33;
-  border-radius: 6px;
-  background: #ffffff14;
-  cursor: pointer;
+  padding: 0.3em 0.9em;
 }
 
 .run #mic-panel input[type='number'] {
   width: 4em;
+  padding: 0.15em 0.4em;
+}
+
+.run #mic-panel input[type='range'] {
+  accent-color: var(--rod);
 }
 
 .run #mic-panel meter {
@@ -643,7 +847,8 @@ body {
 }
 
 .run .lamp.on {
-  background: var(--text);
+  background: var(--rod);
+  box-shadow: 0 0 0 0.15em var(--text);
 }
 
 /* Taktens läge i nedre högra hörnet, litet och med mörk botten över staplarna. */
@@ -656,7 +861,7 @@ body {
   gap: 0.5em;
   padding: 0.3em 0.7em;
   border-radius: 1vh;
-  background: #0b0b0bcc;
+  background: #170a0ccc;
   color: var(--muted);
   font-size: 2.2vh;
 }
@@ -670,6 +875,7 @@ body {
 /* Den interna takten är en tom ring som blinkar. */
 .run .beat .lamp.ring {
   background: none;
+  box-shadow: none;
   border: 0.12em solid #ffffff40;
 }
 

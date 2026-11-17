@@ -14,7 +14,7 @@ import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { chartFrame, renderChart } from './chart'
 import { bannerVisible, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
-import { el, link, message } from './dom'
+import { el, link, logo, message, sports } from './dom'
 import { mountMicPanel } from './micPanel'
 
 // 30 s, 8 min, 1 min 30 s
@@ -124,7 +124,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // Länken står på samma rad som uppmaningen, så att den inte hamnar under kanten.
     const startRow = el('div', { className: 'split' })
     startRow.append(el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), link('Till biblioteket', '#/'))
-    show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
+    show('overview', logo(), el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
       bars(w, segments).node, list, startRow, animLine, panel)
     drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
   }
@@ -137,7 +137,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   function finish() {
     quitting = false
     forget()
-    show('done', el('h1', { textContent: 'Bra jobbat' }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }), link('Till biblioteket', '#/'))
+    show('done', sports(), el('h1', { textContent: 'Bra jobbat!' }), logo(), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }), link('Till biblioteket', '#/'))
   }
 
   function persist() {

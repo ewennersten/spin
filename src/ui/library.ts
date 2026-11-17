@@ -5,6 +5,7 @@ import { LIMITS } from '../model/validate'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { renderChart } from './chart'
+import { clubHeader } from './dom'
 
 const COPY = ' (kopia)'
 const newId = () => crypto.randomUUID()
@@ -79,6 +80,7 @@ export function libraryView(store: Store): View {
 
       const start = button('Starta', () => { location.hash = `#/run/${w.id}` })
       start.disabled = segments.length === 0
+      start.className = 'primary'
       const actions = el('div', { className: 'actions' })
       actions.append(
         start,
@@ -133,8 +135,8 @@ export function libraryView(store: Store): View {
     )
 
     const main = el('main', { className: 'library' })
-    main.append(el('h1', { textContent: 'Dina pass' }), toolbar, status, list, pepSection)
-    root.append(main)
+    main.append(el('h2', { textContent: 'Dina pass' }), toolbar, status, list, pepSection)
+    root.append(clubHeader('Torsdagsspinning'), main)
 
     void refresh()
     void attempt(pepStatus, async () => { pep.value = (await store.getPepWords()).join('\n') })
