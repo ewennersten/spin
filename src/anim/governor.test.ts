@@ -31,3 +31,13 @@ it('ett glapp på tio sekunder ger inget hopp i ljus', () => {
   for (let t = 0; t < 2000; t += 16) g.update(0.02, 16)
   expect(0.5 * g.update(0.5, 10000) - 0.02).toBeLessThanOrEqual(RISE_PER_400MS * 100 / 400 + 1e-9)
 })
+it('ett trasigt mätvärde eller dt förstör inte spärren', () => {
+  const g = new LightGovernor()
+  for (let t = 0; t < 2000; t += 16) g.update(0.1, 16)
+  g.update(NaN, 16)
+  g.update(0.1, NaN)
+  g.update(Infinity, 16)
+  const gain = g.update(0.6, 16)
+  expect(Number.isFinite(gain)).toBe(true)
+  expect(0.6 * gain - 0.1).toBeLessThanOrEqual(RISE_PER_400MS * 16 / 400 + 1e-9)
+})

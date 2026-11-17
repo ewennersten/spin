@@ -10,8 +10,10 @@ export class QualityController {
   private frames = 0
   private sumMs = 0
   private goodWindows = 0
+  private failures = QUALITY_LEVELS.map(() => 0) // hur många gånger varje nivå har fått lämnas nedåt
 
   frame(dtMs: number): number {
+    this.level = Math.min(Math.max(this.level, 0), QUALITY_LEVELS.length - 1)
     if (dtMs > 250) return this.level // dold flik eller sovande dator: räknas inte
     this.frames++
     this.sumMs += dtMs
@@ -21,10 +23,11 @@ export class QualityController {
     this.sumMs = 0
     if (fps < 50) {
       this.goodWindows = 0
-      this.level = Math.min(this.level + 1, QUALITY_LEVELS.length - 1)
+      if (this.level < QUALITY_LEVELS.length - 1) this.failures[this.level++]++
     } else if (fps >= 58 && ++this.goodWindows >= 3) {
       this.goodWindows = 0
-      this.level = Math.max(this.level - 1, 0)
+      // En nivå som har fallerat två gånger prövas inte igen, annars pendlar bilden var åttonde sekund.
+      if (this.level > 0 && this.failures[this.level - 1] < 2) this.level--
     } else if (fps < 58) {
       this.goodWindows = 0
     }
