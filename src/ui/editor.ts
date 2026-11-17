@@ -3,7 +3,6 @@ import { flatten, totalDuration } from '../model/flatten'
 import { mmss } from '../model/format'
 import type { Block, Group, Item, Workout } from '../model/types'
 import { LIMITS, validateWorkout } from '../model/validate'
-import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { renderChart } from './chart'
@@ -45,10 +44,29 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   let unsaved = false // en ändring som inte har sparats, även efter en misslyckad sparning
   let failed = false
   let saved = JSON.stringify(w) // passet som det ser ut i lagringen
+  let removedAt = -Infinity // när en rad senast togs bort
+  const nameFields = new Map<Block, HTMLInputElement>() // blockens namnfält i listan som den är ritad
   const setItems = (l: Item[]) => { w.items = l }
 
-  // Ritar om stapelbild och total tid när passet är giltigt, annars visas felet. Ger true om passet är giltigt.
+  // Platshållaren är namnet som skärmen ger blocket (i en grupp dess första varv), utan tillägget "i av n".
+  // Alla räknas om, eftersom ett block kan få ett annat namn när grannen ändras.
+  function placeholders() {
+    const segments = flatten(w)
+    let n = 0
+    for (const item of w.items) {
+      const suffix = item.kind === 'group' && item.repeat > 1 ? ` 1 av ${item.repeat}` : ''
+      ;(item.kind === 'block' ? [item] : item.blocks).forEach((b, j) => {
+        const field = nameFields.get(b)
+        const name = segments[n + j].name
+        if (field) field.placeholder = name.slice(0, name.length - suffix.length)
+      })
+      n += item.kind === 'block' ? 1 : item.repeat * item.blocks.length
+    }
+  }
+
+  // Ritar om platshållarna, och stapelbild och total tid när passet är giltigt, annars visas felet. Ger true om passet är giltigt.
   function check(): boolean {
+    placeholders()
     const r = validateWorkout(w)
     error.textContent = r.ok ? '' : r.error
     if (!r.ok) return false
@@ -127,7 +145,15 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   function controls<T extends Item>(label: string, items: T[], i: number, set: (l: T[]) => void, fallback: string) {
     const id = items[i].id
     const act = (key: string, text: string, verb: string, next: () => T[], focus: string[]) => {
-      const b = button(text, () => { set(next()); restructure(focus) })
+      const b = button(text, () => {
+        // Nästa rad flyttas upp under pekaren, så det andra klicket i ett dubbelklick på Ta bort ignoreras.
+        if (key === 'del') {
+          if (performance.now() - removedAt < 500) return
+          removedAt = performance.now()
+        }
+        set(next())
+        restructure(focus)
+      })
       b.ariaLabel = `${verb} ${label.toLowerCase()}`
       buttons.set(`${id}:${key}`, b)
       return b
@@ -152,7 +178,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
     const sec = numberInput(0, 59)
     const from = numberInput(LIMITS.pctMin, LIMITS.pctMax)
     const to = numberInput(LIMITS.pctMin, LIMITS.pctMax)
-    const zone = () => { name.placeholder = zoneFor((b.fromPct + b.toPct) / 2).name }
+    nameFields.set(b, name)
     const line = el('div', { className: 'line' })
     line.append(where(label), field('Namn', name), field('Min', min), field('Sek', sec), field('Från %', from), field('Till %', to), actions)
     const row = el('div', { className: 'block', role: 'group', ariaLabel: label })
@@ -172,10 +198,8 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
       b.durationSec = errors.get(min) || errors.get(sec) ? base.durationSec : m * 60 + s
       b.fromPct = errors.get(from) ? base.fromPct : from.valueAsNumber
       b.toPct = errors.get(to) ? base.toPct : to.valueAsNumber
-      zone()
       return errors
     }, [min, sec])
-    zone()
     return row
   }
 
@@ -206,6 +230,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   }
 
   function renderList() {
+    nameFields.clear()
     // Numreringen följer validateWorkout, så att felmeddelandets "Block 3" och "Grupp 2, block 1" går att hitta.
     list.replaceChildren(...w.items.map((item, i) => item.kind === 'group'
       ? groupRow(item, i)
