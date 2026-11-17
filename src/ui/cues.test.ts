@@ -22,9 +22,9 @@ it('ger tätare peppord ju högre procent', () => {
   expect(pepIntervalSec(150)).toBe(25)
 })
 it('håller peppord borta från banderoll och blockets slut', () => {
-  expect(pepAllowed(100, 3000, 10001)).toBe(true)
+  expect(pepAllowed(100, 3000, 14001)).toBe(true)
   expect(pepAllowed(100, 2999, 60000)).toBe(false)
-  expect(pepAllowed(100, 30000, 10000)).toBe(false)
+  expect(pepAllowed(100, 30000, 14000)).toBe(false)
   expect(pepAllowed(80, 30000, 60000)).toBe(false)
 })
 it('märker när positionen har hoppat', () => {

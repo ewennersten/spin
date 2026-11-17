@@ -106,17 +106,20 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
 
   function overview() {
     const list = el('ul', { className: 'contents' })
-    list.append(...w.items.map(i => el('li', { textContent: itemText(i) })))
+    // En grupp utan block ger inget på skärmen och skrivs inte heller här.
+    list.append(...w.items.filter(i => i.kind === 'block' || i.blocks.length).map(i => el('li', { textContent: itemText(i) })))
     const panel = el('div', { id: 'mic-panel' })
+    // Länken står på samma rad som uppmaningen, så att den inte hamnar under kanten.
+    const startRow = el('div', { className: 'split' })
+    startRow.append(el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), link('Till biblioteket', '#/'))
     show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
-      bars(w, segments).svg, list, el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), panel)
+      bars(w, segments).svg, list, startRow, panel)
     drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
   }
 
   function begin() {
     show('live', top, status, current, live.svg, banner, countdown, pep, paused, fullscreenHint, quit, beatBox)
     prevPos = pepFrom = position(clock, now())
-    wake()
   }
 
   function finish() {
@@ -237,9 +240,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   }
 
   function onKey(e: KeyboardEvent) {
+    // Kortkommandon som Cmd+R och Cmd+← är webbläsarens. A gör ingenting här.
+    if (e.ctrlKey || e.metaKey || e.altKey) return
     autoMic()
-    // Tangenter i panelens knapp, reglage och talfält går till dem och styr inte passet.
-    if (e.target instanceof Element && e.target.closest('#mic-panel')) return
+    // Mellanslag styr passet även från panelens reglage och talfält, men trycker på en knapp som har fokus.
+    // Övriga tangenter i panelen, som pilarna i reglaget, går till panelen och styr inte passet.
+    const inPanel = e.target instanceof Element && e.target.closest('#mic-panel')
+    if (e.key === ' ' ? e.target instanceof HTMLButtonElement : inPanel) return
     // Mellanslag och pilar rullar annars sidan.
     if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault()
     if (e.repeat) return
@@ -250,8 +257,6 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       if (e.key === 'Enter') { forget(); location.hash = '#/' }
       return
     }
-    // Kortkommandon som Cmd+R är webbläsarens. A gör ingenting här.
-    if (e.ctrlKey || e.metaKey || e.altKey) return
     const key = e.key.toLowerCase()
     const t = now()
     if (key === 'f') {
@@ -259,13 +264,22 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       return
     }
     if (key === ' ' && mode === 'overview') {
+      // Ett ändrat talfält i panelen gäller och sparas, som när man klickar utanför det, innan panelen försvinner.
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
       clock = start(clock, t)
       persist()
       return begin()
     }
+    // Före start pågår inget pass, så Q behöver ingen bekräftelse.
+    if (key === 'q' && mode === 'overview') { location.hash = '#/'; return }
     if (mode !== 'live') return
     if (key === ' ') clock = clock.running ? pause(clock, t) : start(clock, t)
-    else if (key === 'arrowright') clock = seek(clock, nextStartMs(segments, position(clock, t)), t)
+    else if (key === 'arrowright') {
+      // I sista blocket gör pil höger inget, så att passet inte avslutas utan bekräftelse.
+      const to = nextStartMs(segments, position(clock, t))
+      if (to >= total * 1000) return
+      clock = seek(clock, to, t)
+    }
     else if (key === 'arrowleft') clock = seek(clock, prevStartMs(segments, position(clock, t)), t)
     else if (key === 'q') { quitting = true; quit.hidden = false; return }
     else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
@@ -274,13 +288,16 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     persist()
   }
   const onMove = () => { movedAt = now() }
-  const onVisible = () => { if (document.visibilityState === 'visible' && mode === 'live') wake() }
+  // Webbläsaren släpper vakenlåset när fliken döljs.
+  const onVisible = () => { if (document.visibilityState === 'visible') wake() }
 
-  const saved = fast ? null : loadRun(store.kv, w, now())
-  // Samma pass kört igen inom fyra timmar kan ge ett läge efter passets slut.
-  if (saved && locate(segments, position(saved, now())).done) finish()
-  else if (saved) { clock = saved; hint = true; begin() }
+  let saved = fast ? null : loadRun(store.kv, w, now())
+  // Samma pass kört igen inom fyra timmar kan ge ett läge efter passets slut. Det rensas, så att Starta börjar om.
+  if (saved && locate(segments, position(saved, now())).done) { forget(); saved = null }
+  if (saved) { clock = saved; hint = true; begin() }
   else overview()
+  // Även i överblicken, så att skärmen inte släcks under genomgången före start.
+  wake()
 
   store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity }).catch(() => {})
   // Även efter en omladdning mitt i passet, då panelen med knappen inte visas.

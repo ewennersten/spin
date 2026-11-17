@@ -15,8 +15,9 @@ export function pepIntervalSec(pctNow: number): number | null {
   return Math.max(25, 90 - (pctNow - 88) * 65 / 32)
 }
 
+// Ett ord syns i fyra sekunder, så det får börja först när mer än 14 s är kvar: inget ord under de sista tio.
 export function pepAllowed(pctNow: number, elapsedMs: number, remainingMs: number): boolean {
-  return pctNow >= 88 && !bannerVisible(elapsedMs) && remainingMs > 10000
+  return pctNow >= 88 && !bannerVisible(elapsedMs) && remainingMs > 14000
 }
 
 export function jumped(prevPosMs: number, posMs: number): boolean {
