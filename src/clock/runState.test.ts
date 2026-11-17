@@ -22,6 +22,12 @@ it('återupptar bara samma oförändrade pass inom fyra timmar', () => {
   clearRun(kv)
   expect(loadRun(kv, wk, 2000)).toBeNull()
 })
+it('återupptar inte ett läge som sparades i framtiden, när datorns klocka har ställts bakåt', () => {
+  const kv = fakeKV()
+  saveRun(kv, wk, clock, 5000)
+  expect(loadRun(kv, wk, 4999)).toBeNull()
+  expect(loadRun(kv, wk, 5000)).toEqual(clock)
+})
 it('tål trasig data', () => {
   expect(loadRun(fakeKV({ 'spinning.run.v1': '{' }), wk, 0)).toBeNull()
   const badClock = JSON.stringify({ workoutId: 'w', updatedAt: 7, savedAtMs: 0, clock: { running: 'ja', anchorMs: 0, posAtAnchorMs: 0 } })

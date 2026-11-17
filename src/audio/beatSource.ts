@@ -1,5 +1,6 @@
 import type { BeatDetector } from './beat'
 
+// level är RMS av tidssignalen. bass, mid och treble är linjär amplitud per fack, i praktiken ungefär 0,0001 till 0,05 och inte 0 till 1.
 export interface MicReading { level: number; bass: number; mid: number; treble: number }
 export interface BeatFrame extends MicReading { beat: boolean; mode: 'mic' | 'intern' }
 

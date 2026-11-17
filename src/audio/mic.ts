@@ -15,6 +15,8 @@ export async function openMic(settings: MicSettings): Promise<Mic> {
   let analyser: AnalyserNode
   try {
     ctx = new AudioContext()
+    // Öppnas mikrofonen av sig själv efter en omladdning kan kontexten starta pausad, och då blir analysen tyst.
+    ctx.resume().catch(() => {})
     analyser = new AnalyserNode(ctx, { fftSize: 2048, smoothingTimeConstant: 0.5 })
     ctx.createMediaStreamSource(stream).connect(analyser)
   } catch (e) {

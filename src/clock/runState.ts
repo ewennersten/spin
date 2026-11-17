@@ -13,7 +13,9 @@ export function loadRun(kv: KV, workout: Workout, nowMs: number): ClockState | n
   try {
     const r = JSON.parse(kv.getItem(KEY) ?? 'null')
     const c = r?.clock
-    if (r?.workoutId !== workout.id || r.updatedAt !== workout.updatedAt || !(nowMs - r.savedAtMs < MAX_AGE_MS)) return null
+    // Ett läge från framtiden betyder att datorns klocka har ställts bakåt, och då blir positionen som räknas ur klockan fel.
+    const age = nowMs - r?.savedAtMs
+    if (r?.workoutId !== workout.id || r.updatedAt !== workout.updatedAt || !(age >= 0 && age < MAX_AGE_MS)) return null
     if (typeof c?.running !== 'boolean' || !Number.isFinite(c.anchorMs) || !Number.isFinite(c.posAtAnchorMs)) return null
     return { running: c.running, anchorMs: c.anchorMs, posAtAnchorMs: c.posAtAnchorMs }
   } catch {
