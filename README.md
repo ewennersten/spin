@@ -54,13 +54,13 @@ Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen n�
 | Pil upp, pil ned | Under passet: höjer eller sänker mikrofonens känslighet ett steg. Värdet sparas. |
 | F | Fullskärm av och på. |
 | M | Under passet: växlar mellan mikrofonen och den interna takten. Mikrofonen är fortfarande öppen, så webbläsarens mikrofonsymbol lyser kvar. Valet sparas inte: efter en omladdning används mikrofonen igen. |
-| Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket**. Under passet: avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
+| Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket** (använd länken om du just har rört mikrofonpanelen). Under passet: avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
 
 Esc lämnar fullskärm men avslutar inte passet.
 
 Laddas sidan om mitt i passet fortsätter klockan där den var. Tryck F för att få fullskärm igen.
 
-Ett pass som lämnades utan Q, till exempel med bakåtknappen eller en stängd flik, fortsätter där det var när du trycker **Starta** vid samma pass igen inom fyra timmar, om passets tid inte redan har gått ut. Vill du börja om från början: avsluta passet med Q och Enter, och tryck **Starta** igen.
+Ett pass som lämnades utan Q, till exempel med bakåtknappen eller en stängd flik, återupptas när du trycker **Starta** vid samma pass igen inom fyra timmar, om passets tid inte redan har gått ut. Klockan har gått under tiden: lämnade du passet vid 20:00 och kommer tillbaka fem minuter senare visar skärmen 25:00. Bara ett pausat pass står kvar där det var. Vill du börja om från början: avsluta passet med Q och Enter, och tryck **Starta** igen.
 
 ## Mikrofonen
 
