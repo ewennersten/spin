@@ -42,7 +42,7 @@ Exporten innehåller passen. Peppord och mikrofonens inställningar följer inte
 
 ## Locket ska vara öppet
 
-Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen när locket fälls ned, och då går appen över till intern takt.
+Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen när locket fälls ned, och då går appen över till intern takt. Står det fortfarande Intern takt när locket har öppnats igen och musiken spelar, se "Om mikrofonen försvinner" nedan.
 
 ## Tangenterna
 
@@ -53,7 +53,7 @@ Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen n�
 | Pil vänster | Går tillbaka till början av blocket. Under blockets första tre sekunder: till föregående block. |
 | Pil upp, pil ned | Under passet: höjer eller sänker mikrofonens känslighet ett steg. Värdet sparas. |
 | F | Fullskärm av och på. |
-| M | Under passet: mikrofonen av och på. Av betyder att den interna takten används. |
+| M | Under passet: växlar mellan mikrofonen och den interna takten. Mikrofonen är fortfarande öppen, så webbläsarens mikrofonsymbol lyser kvar. Valet sparas inte: efter en omladdning används mikrofonen igen. |
 | Q | Avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
 
 Esc lämnar fullskärm men avslutar inte passet.
@@ -62,34 +62,42 @@ Laddas sidan om mitt i passet fortsätter klockan där den var. Tryck F för att
 
 ## Mikrofonen
 
-Före start visar överblicken en liten panel för mikrofonen:
+Klicka på **Starta** vid ett pass i biblioteket. Överblicken som då visas, före start, har en liten panel för mikrofonen. Panelen finns inte i **Redigera**.
 
 - **Slå på mikrofonen** öppnar mikrofonen. Första gången frågar webbläsaren om lov.
 - **Nivå** visar hur mycket mikrofonen hör.
-- **Lampan** blinkar på varje slag som appen hittar.
-- **Mikrofon** eller **Intern takt** visar vilket läge som gäller just nu.
+- **Lampan** blinkar på varje slag som mikrofonen hittar. I läget Intern takt är den släckt.
+- **Mikrofon** eller **Intern takt** visar vilket läge som gäller just nu. Står det Intern takt används inte mikrofonen.
 - **Känslighet** (1 till 10): högre ger fler slag, lägre ger färre.
 - **Basband** är de frekvenser där appen letar efter bastrumman, från 20 till 500 Hz. Från början 40 till 150 Hz.
 
-Ändringarna sparas direkt och finns kvar nästa gång.
+Reglaget sparas direkt. Ett talfält gäller och sparas först när du trycker Enter eller Tab eller klickar utanför fältet. Inställningarna finns kvar nästa gång.
 
-När du har klickat i panelen går tangenterna till panelen och inte till passet. Klicka någonstans utanför panelen innan du startar passet med mellanslag.
+Efter ett klick på **Slå på mikrofonen** startar mellanslag passet som vanligt. Har du använt reglaget eller ett talfält går tangenterna dit i stället. Klicka då någonstans utanför panelen innan du startar passet med mellanslag.
 
-Under passet visar en liten ruta nere till höger läget och en prick som blinkar på slagen.
+Under passet visar en liten ruta nere till höger läget. En fylld prick blinkar på slagen från mikrofonen, och en tom ring blinkar i den interna takten.
 
-Appen går över till **intern takt** (130 slag per minut) när mikrofonen är avstängd, inte är tillåten eller har varit tyst i mer än fem sekunder. När ljudet kommer tillbaka gäller mikrofonen igen. Klockorna påverkas aldrig av ljudet.
+Appen går över till **intern takt** (130 slag per minut) när mikrofonen är avstängd, inte är tillåten eller har varit tyst i mer än fem sekunder. När ljudet kommer tillbaka efter tystnad gäller mikrofonen igen. Klockorna påverkas aldrig av ljudet.
+
+Har du redan tillåtit mikrofonen startar den vid första tangenttryckningen eller klicket, även efter en omladdning mitt i passet.
+
+### Om mikrofonen inte är tillåten
 
 Har mikrofonen nekats en gång frågar webbläsaren inte igen. Klicka då på symbolen till vänster om adressen, tillåt mikrofonen och ladda om sidan.
 
-Har du redan tillåtit mikrofonen startar den vid första tangenttryckningen eller klicket, även efter en omladdning mitt i passet.
+Samma meddelande visas om macOS inte tillåter webbläsaren att använda mikrofonen. Öppna då Systeminställningar, Integritet och säkerhet, Mikrofon, och slå på Chrome (eller Edge). Starta om webbläsaren om den ber om det.
+
+### Om mikrofonen försvinner
+
+Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällts ned eller en mikrofon har kopplats ur, kommer den inte tillbaka av sig själv. Ladda om sidan. Klockan fortsätter där den var, och mikrofonen startar vid första tangenttryckningen.
 
 ## Prova takten i salen
 
 Ta med det här till salen och bocka av:
 
-- [ ] Sätt igång musiken på vanlig volym, öppna ett pass och klicka **Slå på mikrofonen**.
+- [ ] Kontrollera först att mikrofonen hör musiken. Sätt igång musiken på vanlig volym, klicka **Starta** vid ett pass i biblioteket och klicka **Slå på mikrofonen**. Det ska stå **Mikrofon**, och nivåmätaren ska röra sig med musiken. Står det Intern takt hör mikrofonen ingenting, och då säger lampan inget om takten.
 - [ ] Titta på lampan. Följer den bastrumman? Den kan komma en aning efter trumman, det är väntat.
 - [ ] Prova känsligheten: dra reglaget uppåt och nedåt och se var lampan följer trumman utan extra blink.
-- [ ] Missar lampan slag: höj basbandets övre gräns, till exempel från 150 till 200 eller 250 Hz. Laptopens mikrofon hör ofta den djupaste basen dåligt.
+- [ ] Missar lampan slag: höj basbandets övre gräns, till exempel från 150 till 200 eller 250 Hz, och tryck Enter. Laptopens mikrofon hör ofta den djupaste basen dåligt.
 - [ ] Prova medan instruktören pratar. Blinkar lampan på rösten i stället för på trumman?
 - [ ] Anteckna vilken musik det fungerade med och vilken det inte fungerade med, och vilka värden för känslighet och basband som var bäst.

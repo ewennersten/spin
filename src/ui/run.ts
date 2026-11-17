@@ -110,7 +110,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const panel = el('div', { id: 'mic-panel' })
     show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
       bars(w, segments).svg, list, el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), panel)
-    drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic })
+    drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
   }
 
   function begin() {
@@ -160,8 +160,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const f = source.update(reading, t)
     if (mode === 'overview') drawPanel()
     if (mode !== 'live') return
+    // Fylld prick för mikrofonen och tom ring för den interna takten, så att läget syns utan att läsa texten.
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
+    beatDot.classList.toggle('ring', f.mode === 'intern')
     put(beatMode, f.mode === 'mic' ? 'Mikrofon' : 'Intern takt')
   }
 

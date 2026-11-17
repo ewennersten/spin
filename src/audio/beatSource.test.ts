@@ -32,3 +32,15 @@ it('tvingar intern takt när mikrofonen är avstängd med M', () => {
   const s = new BeatSource(new BeatDetector()); s.enabled = false
   expect(count(s, loud, 0, 1000).mode).toBe('intern')
 })
+it('ger aldrig två slag tätare än 400 ms, inte heller när läget byts', () => {
+  const s = new BeatSource(new BeatDetector())
+  const beats: number[] = []
+  for (let t = 0; t < 20000; t += 1000 / 60) {
+    s.enabled = Math.floor(t / 700) % 2 === 0 // M trycks var 700:e ms
+    const bass = t % 300 < 1000 / 60 ? 1 : 0.1
+    if (s.update({ ...loud, bass }, t).beat) beats.push(t)
+  }
+  const gaps = beats.slice(1).map((t, i) => t - beats[i])
+  expect(beats.length).toBeGreaterThan(20)
+  expect(Math.min(...gaps)).toBeGreaterThanOrEqual(400)
+})

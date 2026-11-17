@@ -6,6 +6,7 @@ export interface BeatFrame extends MicReading { beat: boolean; mode: 'mic' | 'in
 const INTERN_MS = 60000 / 130
 const QUIET = 0.01
 const QUIET_MS = 5000
+const GAP_MS = 400 // högst 2,5 slag per sekund, även när läget byts
 
 // Mikrofonens slag när den hörs, annars en intern takt på 130 slag per minut.
 export class BeatSource {
@@ -14,6 +15,7 @@ export class BeatSource {
   frame: BeatFrame = { level: 0, bass: 0, mid: 0, treble: 0, beat: false, mode: 'intern' }
   #tick = -1
   #quietSince: number | null = null
+  #lastBeat = -Infinity
 
   constructor(readonly detector: BeatDetector) {}
 
@@ -28,6 +30,8 @@ export class BeatSource {
     this.frame = this.enabled && heard
       ? { ...reading, beat: this.detector.feed(reading.bass, nowMs), mode: 'mic' }
       : { level: reading?.level ?? 0, bass: 0, mid: 0, treble: 0, beat: internBeat, mode: 'intern' }
+    if (this.frame.beat && nowMs - this.#lastBeat < GAP_MS) this.frame.beat = false
+    if (this.frame.beat) this.#lastBeat = nowMs
     return this.frame
   }
 }

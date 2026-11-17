@@ -1,5 +1,5 @@
 const TAU_MS = 1000
-const FLOOR = 0.02
+const FLOOR = 0.001 // linjär amplitud, −60 dB
 const GAP_MS = 400 // högst 2,5 slag per sekund
 
 // Ett slag är när energin plötsligt stiger över sitt eget glidande medelvärde, så att tröskeln följer salens ljudnivå.

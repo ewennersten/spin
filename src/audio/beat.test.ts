@@ -17,6 +17,10 @@ it('hittar slagen i 130 slag per minut', () => {
 it('ger aldrig mer än 2,5 slag per sekund', () => {
   expect(run(pulse(100))).toBeLessThanOrEqual(26)
 })
+it('ger lika många slag när hela signalen är svagare', () => {
+  const p = pulse(60000 / 130)
+  expect(run(t => 0.05 * p(t))).toBe(run(p))
+})
 it('ger inga slag på jämnt ljud eller tystnad', () => {
   expect(run(() => 0.5)).toBe(0)
   expect(run(() => 0)).toBe(0)

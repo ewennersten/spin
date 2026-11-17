@@ -1,5 +1,5 @@
 import type { MicSettings } from '../model/types'
-import { bandEnergy } from './bands'
+import { bandLevel } from './bands'
 import type { MicReading } from './beatSource'
 
 export interface Mic { read(): MicReading; setBassBand(loHz: number, hiHz: number): void; close(): void }
@@ -22,8 +22,8 @@ export async function openMic(settings: MicSettings): Promise<Mic> {
     throw e
   }
   const time = new Float32Array(analyser.fftSize)
-  const freq = new Uint8Array(analyser.frequencyBinCount)
-  const band = (lo: number, hi: number) => bandEnergy(freq, ctx.sampleRate, analyser.fftSize, lo, hi)
+  const db = new Float32Array(analyser.frequencyBinCount)
+  const band = (lo: number, hi: number) => bandLevel(db, ctx.sampleRate, analyser.fftSize, lo, hi)
   let bassLo = settings.bassLoHz
   let bassHi = settings.bassHiHz
   // En urkopplad mikrofon avslutar spåret. Då ger read() tystnad, och BeatSource går över till intern takt.
@@ -34,7 +34,7 @@ export async function openMic(settings: MicSettings): Promise<Mic> {
     read() {
       if (ended) return { level: 0, bass: 0, mid: 0, treble: 0 }
       analyser.getFloatTimeDomainData(time)
-      analyser.getByteFrequencyData(freq)
+      analyser.getFloatFrequencyData(db)
       let sum = 0
       for (const x of time) sum += x * x
       return { level: Math.sqrt(sum / time.length), bass: band(bassLo, bassHi), mid: band(150, 2000), treble: band(2000, 8000) }

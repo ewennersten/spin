@@ -558,6 +558,17 @@ body {
 }
 
 .run .beat .lamp {
+  box-sizing: border-box;
   width: 0.7em;
   height: 0.7em;
+}
+
+/* Den interna takten är en tom ring som blinkar. */
+.run .beat .lamp.ring {
+  background: none;
+  border: 0.12em solid #ffffff40;
+}
+
+.run .beat .lamp.ring.on {
+  border-color: var(--text);
 }

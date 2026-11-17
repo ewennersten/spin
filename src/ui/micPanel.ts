@@ -20,8 +20,10 @@ function field(text: string, input: HTMLElement, after = '') {
   return label
 }
 
-// Funktionen som returneras ritar nivå, lampa och läge. Skärmen anropar den en gång per bildruta efter source.update.
-export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSource, ctl: MicControl): () => void {
+// draw ritar nivå, lampa och läge. Skärmen anropar den en gång per bildruta efter source.update.
+export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSource, ctl: MicControl): { draw(): void } {
+  // Mikrofonens fel och inställningarnas fel står var för sig, så att det ena inte tar bort det andra.
+  const micStatus = el('p', { className: 'error', role: 'alert' })
   const status = el('p', { className: 'error', role: 'alert' })
   const button = el('button', { type: 'button', textContent: 'Slå på mikrofonen' })
   const meter = el('meter', { min: 0, max: 1, value: 0 })
@@ -37,9 +39,10 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
     store.getMicSettings().then(s => store.saveMicSettings({ ...s, ...change })).catch(e => { status.textContent = message(e) })
 
   button.onclick = () => {
-    status.textContent = ''
+    button.blur() // så att mellanslag direkt efteråt startar passet
+    micStatus.textContent = ''
     ctl.enableMic().catch(e => {
-      status.textContent = e instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(e.name) ? DENIED : FAILED
+      micStatus.textContent = e instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(e.name) ? DENIED : FAILED
     })
   }
   sens.oninput = () => {
@@ -62,7 +65,7 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
   row1.append(button, field('Nivå', meter), lamp, modeText)
   const row2 = el('div', { className: 'row' })
   row2.append(field('Känslighet', sens), sensText, field('Basband', lo, 'Hz'), field('till', hi, 'Hz'))
-  root.append(row1, row2, status)
+  root.append(row1, row2, micStatus, status)
 
   store.getMicSettings().then(s => {
     sens.value = String(s.sensitivity)
@@ -71,14 +74,18 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
     hi.value = String(s.bassHiHz)
   }).catch(e => { status.textContent = message(e) })
 
+  // Lampan visar bara slag som mikrofonen hör. Den interna takten tänder den aldrig, så att den inte ser ut att följa musiken.
   let litUntil = 0
-  return () => {
-    const f = source.frame
-    const t = performance.now()
-    if (f.beat) litUntil = t + LAMP_MS
-    lamp.classList.toggle('on', t < litUntil)
-    meter.value = meterValue(f.level)
-    const text = f.mode === 'mic' ? 'Mikrofon' : 'Intern takt'
-    if (modeText.textContent !== text) modeText.textContent = text
+  return {
+    draw() {
+      const f = source.frame
+      const t = performance.now()
+      const mic = f.mode === 'mic'
+      if (mic && f.beat) litUntil = t + LAMP_MS
+      lamp.classList.toggle('on', mic && t < litUntil)
+      meter.value = meterValue(f.level)
+      const text = mic ? 'Mikrofon' : 'Intern takt: mikrofonen används inte just nu'
+      if (modeText.textContent !== text) modeText.textContent = text
+    },
   }
 }
