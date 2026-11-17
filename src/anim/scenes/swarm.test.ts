@@ -2,7 +2,7 @@ import type * as THREE from 'three'
 import { expect, it } from 'vitest'
 import { MAX_PARTICLES, swarm } from './swarm'
 
-const input = { intensity: 1, pulse: 1, bands: { bass: 1, mid: 1, treble: 1 }, color: '#ff0000', calm: false, calmMix: 0, timeSec: 1, dtSec: 0.016 }
+const input = { intensity: 1, pulse: 1, bands: { bass: 1, mid: 1, treble: 1 }, color: '#ff0000', calm: false, calmMix: 0, runIntensity: 1, timeSec: 1, dtSec: 0.016 }
 const points = (s: ReturnType<typeof swarm>) => s.scene.children[0] as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>
 const uniform = (s: ReturnType<typeof swarm>, name: string) => points(s).material.uniforms[name].value as number
 

@@ -117,7 +117,10 @@ export const grid: SceneFactory = () => {
       }
       pos.needsUpdate = true
       col.needsUpdate = true
-      const glow = lerp(0.5 + 0.6 * i, 0.8, m) * (1 + 0.7 * input.pulse)
+      const lit = (x: number) => 0.5 + 0.6 * x
+      // Lugnt läge: dämpat men synligt i vila, och i en paus aldrig ljusare än samma procent när passet går.
+      const calmGlow = input.runIntensity === null ? 0.8 : Math.min(0.8, lit(input.runIntensity))
+      const glow = lerp(lit(i), calmGlow, m) * (1 + 0.7 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },
     setParticles(fraction) {

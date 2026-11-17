@@ -241,6 +241,7 @@ export function createStage(options: StageOptions): Stage | null {
       color,
       calm,
       calmMix,
+      runIntensity: calmFor(f.pctNow, true) ? null : intensityFor(f.pctNow),
       timeSec: (f.nowMs - startMs) / 1000,
       dtSec: Math.min(dtMs, 100) / 1000,
     })
