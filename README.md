@@ -96,9 +96,9 @@ Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällt
 
 ## Animationerna
 
-Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Klockorna och texterna ligger på mörka plattor, så att de går att läsa framför animationen. I överblicken och efter passet är bakgrunden mörk.
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Klockorna och texterna ligger på mörka plattor, så att de går att läsa framför animationen. I överblicken och efter passet är bakgrunden mörk. Under nedräkningen före ett nytt block och medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
 
-Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**. Då står bara en stilla mörk bakgrund kvar, och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
+Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
 
 Saknar datorn stöd för 3D-grafik (WebGL), eller tappas den mitt i passet, fortsätter skärmen som vanligt utan animationer.
 
@@ -120,3 +120,6 @@ Ta med det här till salen och bocka av:
 - [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt.
 - [ ] Klockorna går att läsa från den bakersta cykeln medan animationen går.
 - [ ] A stänger av animationerna, och det står **Animationer av** nere till höger.
+- [ ] Den röda kantramen i VO2max-intervallerna känns inte för stark, och inte som ett blink över hela skärmen.
+- [ ] Vila och paus ser lagom dämpade ut: lugna, men inte avstängda.
+- [ ] Inget i bilden ser ut att flimra i takt med musiken utöver pulserna, till exempel staplar och berg som ändrar storlek med basen.
