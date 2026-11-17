@@ -10,7 +10,7 @@ import type { Block, Item, Segment, Workout } from '../model/types'
 import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
-import { renderChart } from './chart'
+import { chartFrame, renderChart } from './chart'
 import { bannerVisible, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 import { el, link, message } from './dom'
 import { mountMicPanel } from './micPanel'
@@ -31,8 +31,9 @@ function bars(w: Workout, segments: Segment[]) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('role', 'img')
   svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
-  svg.classList.add('chart')
-  return { svg, chart: renderChart(svg, segments) }
+  const { frame, scale } = chartFrame(svg)
+  frame.classList.add('chart')
+  return { node: frame, chart: renderChart(svg, segments, scale) }
 }
 
 function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): () => void {
@@ -113,12 +114,12 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const startRow = el('div', { className: 'split' })
     startRow.append(el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), link('Till biblioteket', '#/'))
     show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
-      bars(w, segments).svg, list, startRow, panel)
+      bars(w, segments).node, list, startRow, panel)
     drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
   }
 
   function begin() {
-    show('live', top, status, current, live.svg, banner, countdown, pep, paused, fullscreenHint, quit, beatBox)
+    show('live', top, status, current, live.node, banner, countdown, pep, paused, fullscreenHint, quit, beatBox)
     prevPos = pepFrom = position(clock, now())
   }
 

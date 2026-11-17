@@ -155,10 +155,41 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.editor svg {
-  display: block;
-  width: 100%;
+.editor .chart-frame {
   height: 160px;
+  font-size: 12px;
+}
+
+/* Stapelbild med skala: etiketterna i en kolumn till vänster, bilden fyller resten. */
+.chart-frame {
+  display: flex;
+}
+
+.chart-frame svg {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.scale {
+  position: relative;
+  flex: none;
+  width: 4em;
+}
+
+.scale span {
+  position: absolute;
+  right: 0.5em;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.scale .ftp {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .error {
@@ -268,7 +299,8 @@ body {
 }
 
 .run .chart {
-  display: block;
+  display: flex;
+  font-size: calc(2.4 * var(--u));
   flex: none;
   align-self: stretch;
   /* Över hela bredden, utanför sidans marginal. */

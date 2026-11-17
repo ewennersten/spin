@@ -5,9 +5,19 @@ import { zoneFor } from '../model/zones'
 export interface Shape { points: string; fromColor: string; toColor: string }
 export interface Chart { setPlayhead(posSec: number | null): void }
 
+// Procenten som bildens övre kant motsvarar.
+const scaleTop = (segments: Segment[]) => Math.max(120, ...segments.flatMap(s => [s.fromPct, s.toPct]))
+
+// Skalsteg var 25:e procent. Steget i toppen hoppas över, så att etiketten inte klipps vid övre kanten.
+export function scaleTicks(top: number): number[] {
+  const ticks = []
+  for (let t = 25; t < top; t += 25) ticks.push(t)
+  return ticks
+}
+
 export function chartShapes(segments: Segment[], width: number, height: number): Shape[] {
   const total = totalDuration(segments)
-  const top = Math.max(120, ...segments.flatMap(s => [s.fromPct, s.toPct]))
+  const top = scaleTop(segments)
   const y = (pct: number) => height - pct / top * height
   return segments.map(s => {
     // En enhets luft på var sida, men högst en fjärdedel av blockets bredd, så att ett mycket kort block syns och aldrig får negativ bredd.
@@ -34,7 +44,19 @@ function el(tag: string, attrs: Record<string, string | number>): SVGElement {
   return e
 }
 
-export function renderChart(svg: SVGSVGElement, segments: Segment[]): Chart {
+// En ram med skalans kolumn till vänster och bilden till höger. Ramen får storleken, bilden fyller resten.
+export function chartFrame(svg: SVGSVGElement): { frame: HTMLElement; scale: HTMLElement } {
+  const frame = document.createElement('div')
+  frame.className = 'chart-frame'
+  const scale = document.createElement('div')
+  scale.className = 'scale'
+  scale.setAttribute('aria-hidden', 'true')
+  frame.append(scale, svg)
+  return { frame, scale }
+}
+
+// Med scale ritas linjer var 25:e procent i bilden och etiketterna i scale, som står bredvid bilden (se chartFrame).
+export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement): Chart {
   svg.replaceChildren()
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`)
   svg.setAttribute('preserveAspectRatio', 'none')
@@ -54,6 +76,21 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[]): Chart {
     }
     svg.append(el('polygon', { points: shape.points, fill }))
   })
+
+  if (scale) {
+    const top = scaleTop(segments)
+    // Etiketterna är vanlig text bredvid bilden, eftersom text i bilden skulle tänjas ut med den.
+    scale.replaceChildren(...scaleTicks(top).map(t => {
+      const y = H - t / top * H
+      // Linjen är en bildpunkt tjock oavsett hur mycket bilden tänjs. FTP-linjen är ljusare.
+      svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#f1efe8', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
+      const label = document.createElement('span')
+      label.textContent = `${t} %`
+      label.style.top = `${y / H * 100}%`
+      if (t === 100) label.className = 'ftp'
+      return label
+    }))
+  }
 
   const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#0b0b0b', opacity: 0.6, display: 'none' })
   const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#f1efe8', 'stroke-width': 4, display: 'none' })

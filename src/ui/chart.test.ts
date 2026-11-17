@@ -1,6 +1,12 @@
 import { expect, it } from 'vitest'
 import type { Segment } from '../model/types'
-import { chartShapes } from './chart'
+import { chartShapes, scaleTicks } from './chart'
+
+it('ger skalsteg var 25:e procent under bildens topp', () => {
+  expect(scaleTicks(120)).toEqual([25, 50, 75, 100])
+  expect(scaleTicks(150)).toEqual([25, 50, 75, 100, 125])
+  expect(scaleTicks(200)).toEqual([25, 50, 75, 100, 125, 150, 175])
+})
 
 it('räknar ut formerna', () => {
   const one: Segment[] = [{ name: 'A', startSec: 0, durationSec: 60, fromPct: 60, toPct: 120 }]

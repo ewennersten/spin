@@ -5,7 +5,7 @@ import type { Block, Group, Item, Workout } from '../model/types'
 import { LIMITS, validateWorkout } from '../model/validate'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
-import { renderChart } from './chart'
+import { chartFrame, renderChart } from './chart'
 
 // Samma små hjälpare som i library.ts, som inte exporterar dem.
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}): HTMLElementTagNameMap[K] =>
@@ -37,6 +37,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   const total = el('span')
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('role', 'img')
+  const { frame, scale } = chartFrame(svg)
   const list = el('div', { className: 'items' })
   // Knappar som ska kunna få fokus igen efter att listan ritats om, med nyckeln "<id>:<åtgärd>".
   const buttons = new Map<string, HTMLButtonElement>()
@@ -71,7 +72,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
     error.textContent = r.ok ? '' : r.error
     if (!r.ok) return false
     const segments = flatten(r.workout)
-    renderChart(svg, segments)
+    renderChart(svg, segments, scale)
     svg.setAttribute('aria-label', `Stapelbild för ${r.workout.name}`)
     total.textContent = mmss(totalDuration(segments))
     return true
@@ -255,7 +256,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   const adds = el('div', { className: 'toolbar' })
   adds.append(addBlock, button('Lägg till grupp', () => { w.items = [...w.items, newGroup()]; restructure([]) }))
 
-  main.append(el('h1', { textContent: 'Redigera pass' }), toolbar, nameRow, totalRow, svg, error, list, adds)
+  main.append(el('h1', { textContent: 'Redigera pass' }), toolbar, nameRow, totalRow, frame, error, list, adds)
   renderList()
   check()
 
