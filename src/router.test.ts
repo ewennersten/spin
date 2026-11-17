@@ -7,5 +7,6 @@ it('tolkar adresser', () => {
   expect(parseRoute('#/edit/abc')).toEqual({ view: 'edit', id: 'abc' })
   expect(parseRoute('#/run/abc')).toEqual({ view: 'run', id: 'abc' })
   expect(parseRoute('#/run/')).toEqual({ view: 'library' })
+  expect(parseRoute('#/peppord')).toEqual({ view: 'pep' })
   expect(parseRoute('#/okänt/x')).toEqual({ view: 'library' })
 })

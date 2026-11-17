@@ -5,7 +5,7 @@ import { LIMITS } from '../model/validate'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { renderChart } from './chart'
-import { clubHeader } from './dom'
+import { attempt, clubHeader } from './dom'
 
 const COPY = ' (kopia)'
 const newId = () => crypto.randomUUID()
@@ -18,16 +18,6 @@ const button = (textContent: string, onclick: () => void) => el('button', { text
 const message = (e: unknown) =>
   e instanceof DOMException && e.name === 'QuotaExceededError' ? 'Webbläsarens lagring är full, så ändringen sparades inte.'
     : e instanceof Error ? e.message : String(e)
-
-// Resultatet eller felet visas alltid som text, så att inget fel från lagringen försvinner tyst.
-async function attempt(status: HTMLElement, action: () => Promise<string | void>) {
-  status.textContent = ''
-  try {
-    status.textContent = (await action()) || ''
-  } catch (e) {
-    status.textContent = message(e)
-  }
-}
 
 function copyOf(w: Workout): Workout {
   // Namnet kortas så att suffixet ryms inom gränsen, utan att ett tecken utanför BMP delas på mitten.
@@ -118,27 +108,76 @@ export function libraryView(store: Store): View {
     const toolbar = el('div', { className: 'toolbar' })
     toolbar.append(newButton, button('Exportera pass', () => attempt(status, async () => download(await store.exportAll()))), importButton, file)
 
-    const pep = el('textarea', { id: 'peppord', rows: 8 })
-    const pepStatus = el('p', { className: 'status', role: 'status' })
-    const pepSection = el('section', { className: 'pep' })
-    pepSection.append(
-      el('h2', { textContent: 'Peppord' }),
-      el('label', { htmlFor: 'peppord', textContent: 'Ett ord eller en fras per rad' }),
-      pep,
-      button('Spara', () => attempt(pepStatus, async () => {
-        const words = pep.value.split('\n').map(s => s.trim()).filter(Boolean)
-        await store.savePepWords(words)
-        pep.value = words.join('\n')
-        return 'Pepporden är sparade'
-      })),
-      pepStatus,
-    )
-
     const main = el('main', { className: 'library' })
-    main.append(el('h2', { textContent: 'Dina pass' }), toolbar, status, list, pepSection)
-    root.append(clubHeader('Torsdagsspinning'), main)
+    main.append(el('h2', { textContent: 'Dina pass' }), toolbar, status, list)
+    root.append(clubHeader('Torsdagsspinning', 'pass'), main)
 
     void refresh()
-    void attempt(pepStatus, async () => { pep.value = (await store.getPepWords()).join('\n') })
+  }
+}
+
+export function pepView(store: Store): View {
+  return (root) => {
+    let words: string[] = []
+    const status = el('p', { className: 'status', role: 'status' })
+    const list = el('ul', { className: 'pepwords' })
+    const empty = el('p', { className: 'note', textContent: 'Inga peppord ännu. Utan ord visas inget under passet.', hidden: true })
+    const input = el('input', { type: 'text', id: 'nytt-peppord', maxLength: 40, placeholder: 'Till exempel: Kör hårt!' })
+    const add = el('button', { type: 'submit', textContent: 'Lägg till', className: 'primary' })
+    // Tills listan är inläst går inget att lägga till, så att en misslyckad inläsning inte skriver över de sparade orden.
+    input.disabled = add.disabled = true
+    const label = el('label', { htmlFor: input.id, textContent: 'Nytt peppord' })
+    const form = el('form', { className: 'pep-add' })
+    form.append(label, input, add)
+
+    // Varje ändring sparas direkt. Misslyckas sparningen står listan kvar som den är i lagringen.
+    const update = (next: string[], done: string) => attempt(status, async () => {
+      await store.savePepWords(next)
+      words = next
+      draw()
+      return done
+    })
+
+    function draw() {
+      empty.hidden = words.length > 0
+      list.replaceChildren(...words.map((w, i) => {
+        const del = button('Ta bort', () => update(words.filter((_, j) => j !== i), `Borttaget: ${w}`).then(() => {
+          // Fokus går till raden som nu står på samma plats, annars till fältet.
+          const rest = list.querySelectorAll('button')
+          ;(rest[Math.min(i, rest.length - 1)] ?? input).focus()
+        }))
+        del.ariaLabel = `Ta bort ${w}`
+        const li = el('li')
+        li.append(el('span', { className: 'word', textContent: w }), del)
+        return li
+      }))
+    }
+
+    form.onsubmit = e => {
+      e.preventDefault()
+      const w = input.value.trim()
+      if (!w) return
+      if (words.includes(w)) { status.textContent = `${w} finns redan i listan`; return }
+      void update([...words, w], `Tillagt: ${w}`).then(() => {
+        if (words.includes(w)) input.value = ''
+        input.focus()
+      })
+    }
+
+    const main = el('main', { className: 'library pep' })
+    main.append(
+      el('h2', { textContent: 'Peppord' }),
+      el('p', { className: 'note', textContent: 'Från 88 % av FTP visas ett slumpat ord stort på skärmen då och då, oftare ju hårdare det går.' }),
+      form,
+      status,
+      list,
+      empty,
+    )
+    root.append(clubHeader('Torsdagsspinning', 'pep'), main)
+    void attempt(status, async () => {
+      words = await store.getPepWords()
+      draw()
+      input.disabled = add.disabled = false
+    })
   }
 }

@@ -84,6 +84,32 @@ h1 {
   height: 32px;
 }
 
+/* Menyn längst ned i sidhuvudet. Fliken man står i är vit med rött streck under. */
+.tabs {
+  display: flex;
+  gap: 28px;
+  margin-top: 12px;
+}
+
+.tabs a {
+  padding: 6px 0;
+  border-bottom: 4px solid transparent;
+  color: var(--muted);
+  font-size: 22px;
+  font-stretch: 80%;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.tabs a:hover {
+  color: var(--text);
+}
+
+.tabs a[aria-current='page'] {
+  border-bottom-color: var(--rod);
+  color: var(--text);
+}
+
 .library,
 .editor {
   max-width: 1000px;
@@ -94,11 +120,6 @@ h1 {
 .library h2 {
   margin: 24px 0 16px;
   font-size: 36px;
-}
-
-.pep h2 {
-  margin: 0;
-  font-size: 28px;
 }
 
 /* Knapparna är piller. Den viktigaste (Starta) är röd och fylld, resten är konturer. */
@@ -216,20 +237,70 @@ h1 {
   color: var(--muted);
 }
 
-.pep {
-  margin-top: 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+.pep .note {
+  margin: 0 0 16px;
+  max-width: 60ch;
 }
 
-.pep label {
+/* Fältet för ett nytt ord och knappen på samma rad; etiketten ovanför. */
+.pep-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 600px;
+}
+
+.pep-add label {
+  flex-basis: 100%;
   color: var(--muted);
 }
 
+.pep-add input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+/* Orden står som de gör på skärmen: smal, tung kursiv. */
+.pepwords {
+  list-style: none;
+  max-width: 600px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.pepwords li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0 10px 12px;
+  border-top: 1px solid #ffffff1f;
+  border-left: 4px solid transparent;
+}
+
+.pepwords li:last-child {
+  border-bottom: 1px solid #ffffff1f;
+}
+
+.pepwords li:hover,
+.pepwords li:focus-within {
+  border-left-color: var(--rod);
+  background: linear-gradient(90deg, #5a0c1766, transparent 70%);
+}
+
+.pepwords .word {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 26px;
+  font-stretch: 72%;
+  font-style: italic;
+  font-weight: 850;
+}
+
 /* Fälten är mörka med ljus kant, som knapparna. */
-.pep textarea,
+.pep-add input,
 .field input,
 .run #mic-panel input[type='number'] {
   font: inherit;
@@ -239,15 +310,8 @@ h1 {
   border-radius: 8px;
 }
 
-.pep textarea {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 480px;
-  padding: 8px 10px;
-}
-
 .field input:hover,
-.pep textarea:hover {
+.pep-add input:hover:not(:disabled) {
   border-color: #ffffff66;
 }
 

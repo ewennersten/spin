@@ -6,7 +6,7 @@ import { parseRoute, type Route, type View } from './router'
 import { createStorage, type Store } from './storage/storage'
 import { el } from './ui/dom'
 import { editorView } from './ui/editor'
-import { libraryView } from './ui/library'
+import { libraryView, pepView } from './ui/library'
 import { runView } from './ui/run'
 
 const root = document.querySelector<HTMLElement>('#app')!
@@ -15,6 +15,7 @@ function app(store: Store) {
   // Kopplingen mellan adress och vy.
   const views: Record<Route['view'], View> = {
     library: libraryView(store),
+    pep: pepView(store),
     edit: editorView(store),
     run: runView(store),
   }

@@ -276,7 +276,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
 export function editorView(store: Store): View {
   return (root, id) => {
     const main = el('main', { className: 'editor' })
-    root.append(clubHeader('Redigera pass'), main)
+    root.append(clubHeader('Redigera pass', 'pass'), main)
     const back = () => link('Till biblioteket', '#/')
     let alive = true
     let leave = () => {}
