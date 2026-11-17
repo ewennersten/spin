@@ -135,11 +135,14 @@ export function createStage(options: StageOptions): Stage | null {
   const applySize = () => {
     const w = innerWidth
     const h = innerHeight
+    // Hela bildpunkter genom hela kedjan, så att mätshadern får texturens verkliga storlek (inte t.ex. 1024,5).
     const ratio = Math.min(devicePixelRatio, 1920 / w, 1080 / h) * QUALITY_LEVELS[level].scale
-    renderer.setPixelRatio(ratio)
-    renderer.setSize(w, h)
-    composer.setPixelRatio(ratio)
-    composer.setSize(w, h)
+    const pw = Math.max(1, Math.floor(w * ratio))
+    const ph = Math.max(1, Math.floor(h * ratio))
+    renderer.setPixelRatio(1)
+    renderer.setSize(pw, ph, false) // canvasen fyller fönstret via CSS
+    composer.setPixelRatio(1)
+    composer.setSize(pw, ph)
     if (current) {
       current.camera.aspect = w / h
       current.camera.updateProjectionMatrix()
@@ -244,7 +247,11 @@ export function createStage(options: StageOptions): Stage | null {
     meterMat.uniforms.uSize.value.set(composer.readBuffer.width, composer.readBuffer.height)
     quad.material = meterMat
     renderer.setRenderTarget(meterTarget)
+    // Rensa med alfa 0: bara mätshaderns egen utdata ger alfa 255, så ett mätprogram som inte ritar märks nedan.
+    const clearAlpha = renderer.getClearAlpha()
+    renderer.setClearAlpha(0)
     quad.render(renderer)
+    renderer.setClearAlpha(clearAlpha)
     // Synkron läsning av just den här bilden innan den visas. En asynkron läsning kom 1 till 3 bildrutor
     // efter bilden, och slagpulsen hann då ta ljuset till 0,265 och stigningen till 0,135 (uppmätt).
     // Mätshadern skriver alfa 1; står det inte 255 efter läsningen är bildrutan omätt.
