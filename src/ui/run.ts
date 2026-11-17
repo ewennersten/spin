@@ -188,7 +188,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // Fylld prick för mikrofonen och tom ring för den interna takten, så att läget syns utan att läsa texten.
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
-    current.classList.toggle('pulse', t < litUntil && clock.running) // procenten och klockan studsar i takt
+    // Procenten, klockan och stapeln som pågår lyser upp i takt.
+    const pulse = t < litUntil && clock.running
+    current.classList.toggle('pulse', pulse)
+    live.node.classList.toggle('pulse', pulse)
     beatDot.classList.toggle('ring', f.mode === 'intern')
     put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
   }

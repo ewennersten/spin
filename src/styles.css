@@ -743,6 +743,32 @@ h2,
   border-radius: 1.5vh 1.5vh 0 0;
 }
 
+/* Stapeln som pågår lyser och blinkar till i takt med musiken (klassen pulse sätts av run.ts).
+   Bara en stapel och en svag ljusning, så att det aldrig blir ett blink över skärmen. */
+.run .chart .now .glow {
+  opacity: 0.12;
+  transition: opacity 260ms ease-out;
+}
+
+.run .chart.pulse .now .glow {
+  opacity: 0.3;
+  transition-duration: 50ms;
+}
+
+.run .chart svg {
+  overflow: visible;
+}
+
+.run .chart .now {
+  filter: drop-shadow(0 0 1.6vh currentColor);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run .chart.pulse .now .glow {
+    opacity: 0.12;
+  }
+}
+
 /* Signalerna ligger ovanpå skärmen med mörk botten, så att de går att läsa över text och staplar. */
 .run .banner,
 .run .countdown,

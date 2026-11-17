@@ -64,7 +64,17 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
   const chartId = nextChartId++
   const defs = el('defs', {})
   svg.append(defs)
-  chartShapes(segments, W, H).forEach((shape, i) => {
+  // Glans överst och skugga nederst, lagd över varje stapel, så att staplarna får djup.
+  const shadeId = `chart-${chartId}-shade`
+  const shade = el('linearGradient', { id: shadeId, x1: 0, y1: 0, x2: 0, y2: 1 })
+  shade.append(
+    el('stop', { offset: 0, 'stop-color': '#ffffff', 'stop-opacity': 0.38 }),
+    el('stop', { offset: 0.14, 'stop-color': '#ffffff', 'stop-opacity': 0.1 }),
+    el('stop', { offset: 0.5, 'stop-color': '#ffffff', 'stop-opacity': 0 }),
+    el('stop', { offset: 1, 'stop-color': '#000000', 'stop-opacity': 0.5 }),
+  )
+  defs.append(shade)
+  const bars = chartShapes(segments, W, H).map((shape, i) => {
     let fill = shape.fromColor
     if (shape.toColor !== shape.fromColor) {
       const id = `chart-${chartId}-${i}`
@@ -74,7 +84,17 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       defs.append(grad)
       fill = `url(#${id})`
     }
-    svg.append(el('polygon', { points: shape.points, fill }))
+    // Stapelns övre kant (andra och tredje hörnet) får en ljus linje. Glow syns bara på stapeln som pågår (se styles.css).
+    const [, from, to] = shape.points.split(' ')
+    const bar = el('g', { class: 'bar', color: shape.toColor }) // color ger glöden zonens färg
+    bar.append(
+      el('polygon', { points: shape.points, fill }),
+      el('polygon', { points: shape.points, fill: `url(#${shadeId})` }),
+      el('polygon', { points: shape.points, fill: '#ffffff', opacity: 0, class: 'glow' }),
+      el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: '#ffffff', 'stroke-opacity': 0.7, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
+    )
+    svg.append(bar)
+    return bar
   })
 
   if (scale) {
@@ -97,11 +117,18 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
   svg.append(dim, line)
 
   const total = totalDuration(segments)
+  let now = -1
   return {
     setPlayhead(posSec) {
       const show = posSec !== null && total > 0
       dim.setAttribute('display', show ? 'inline' : 'none')
       line.setAttribute('display', show ? 'inline' : 'none')
+      const i = posSec !== null && total > 0 ? segments.findIndex(s => posSec < s.startSec + s.durationSec) : -1
+      if (i !== now) {
+        bars[now]?.classList.remove('now')
+        bars[i]?.classList.add('now')
+        now = i
+      }
       if (!show) return
       const x = Math.min(Math.max(posSec, 0), total) / total * W
       dim.setAttribute('width', String(x))
