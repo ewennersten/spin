@@ -27,6 +27,14 @@ export function celebrates(s: Segment): boolean {
   return countdownNumber(s.durationSec, 1000) !== null && Math.max(s.fromPct, s.toPct) >= 76
 }
 
+// Hur långt uppbyggnaden har kommit: 0 tio sekunder före blockets slut och 1 vid noll, annars null. Den byggs upp
+// inför slutet av ett hårt block och inför starten av ett hårt block (next), samma block som får rave-effekten (celebrates).
+export const BUILDUP_MS = 10_000
+export function buildupLevel(s: Segment, next: Segment | undefined, remainingMs: number): number | null {
+  if (!(celebrates(s) || (next && celebrates(next))) || remainingMs > BUILDUP_MS || remainingMs <= 0) return null
+  return 1 - remainingMs / BUILDUP_MS
+}
+
 export function jumped(prevPosMs: number, posMs: number): boolean {
   return posMs < prevPosMs || posMs - prevPosMs > 2000
 }

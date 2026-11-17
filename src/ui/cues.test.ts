@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { bannerVisible, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { bannerVisible, buildupLevel, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 
 it('räknar ned de sista fem sekunderna på block från 15 sekunder', () => {
   expect(countdownNumber(15, 5001)).toBeNull()
@@ -42,4 +42,21 @@ it('firar bara hårda block med nedräkning', () => {
   expect(celebrates(block(90, 55, 55))).toBe(false)
   expect(celebrates(block(600, 45, 70))).toBe(false)
   expect(celebrates(block(10, 120, 120))).toBe(false)
+})
+
+it('bygger upp de sista tio sekunderna av ett hårt block', () => {
+  const hard = { name: 'VO2max', startSec: 0, durationSec: 240, fromPct: 115, toPct: 115 }
+  const rest = { ...hard, fromPct: 55, toPct: 55 }
+  expect(buildupLevel(hard, rest, 10_001)).toBeNull()
+  expect(buildupLevel(hard, rest, 10_000)).toBe(0)
+  expect(buildupLevel(hard, rest, 5_000)).toBeCloseTo(0.5)
+  expect(buildupLevel(hard, undefined, 0)).toBeNull()
+  expect(buildupLevel(rest, rest, 5_000)).toBeNull() // vila före vila
+  expect(buildupLevel(rest, undefined, 5_000)).toBeNull() // sista blocket
+})
+it('bygger också upp de sista tio sekunderna före ett hårt block', () => {
+  const hard = { name: 'VO2max', startSec: 0, durationSec: 240, fromPct: 115, toPct: 115 }
+  const rest = { ...hard, fromPct: 50, toPct: 50 }
+  expect(buildupLevel(rest, hard, 5_000)).toBeCloseTo(0.5)
+  expect(buildupLevel(rest, hard, 20_000)).toBeNull()
 })

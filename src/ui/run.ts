@@ -1,3 +1,4 @@
+import { createBuildup } from '../anim/buildup'
 import { SCREEN_EFFECT, createDrops } from '../anim/drops'
 import { createStage } from '../anim/stage'
 import { SCENES } from '../anim/scenes'
@@ -14,7 +15,7 @@ import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { chartFrame, renderChart } from './chart'
-import { bannerVisible, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { bannerVisible, buildupLevel, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 import { el, link, logo, message, sports } from './dom'
 import { mountMicPanel } from './micPanel'
 
@@ -37,9 +38,9 @@ function bars(w: Workout, segments: Segment[], mirror = true) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('role', 'img')
   svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
-  const { frame, scale } = chartFrame(svg)
+  const { frame, scale, borg } = chartFrame(svg)
   frame.classList.add('chart')
-  return { node: frame, chart: renderChart(svg, segments, scale, { mirror }) }
+  return { node: frame, chart: renderChart(svg, segments, scale, { mirror, borg }) }
 }
 
 function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): () => void {
@@ -84,6 +85,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let lostShown: Mic | null = null // källan som rutan redan har visats för
   // Rave-effekten och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
   const drops = createDrops()
+  const buildup = createBuildup()
   let shakeTimer = 0
   let lastIndex = 0
   let cheerUntil = 0
@@ -191,6 +193,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       put(cheer, lastCheer)
       cheerUntil = performance.now() + 2600
     }
+    drop(s)
+  }
+
+  // Rave-effekten: när ett hårt block är klart (celebrate) och när ett hårt block börjar efter uppbyggnaden.
+  function drop(s: Segment) {
     if (animOn && stage && !stage.broken && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const zone = zoneFor(s.toPct)
       const calm = lightSwitch.checked
@@ -238,6 +245,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       put(animLine, animOn ? 'Animationer: på (A stänger av)' : 'Animationer: av (A sätter på)')
     }
     const at = mode === 'live' ? draw(t) : undefined
+    if (mode !== 'live') buildup.draw(null, '', '', false, 0) // passet har avslutats eller börjats om
     sound()
     // Efter draw, som kan ha avslutat passet. Dold under avslutsrutans slöja, så att bilden tonar upp under
     // ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
@@ -288,9 +296,12 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   function draw(t: number): Located | undefined {
     const pos = position(clock, t)
     const at = locate(segments, pos)
-    // Ett hårt block som har körts klart, och inte hoppats förbi med pilarna, firas.
+    // Ett hårt block som har körts klart, och inte hoppats förbi med pilarna, firas. Börjar i stället ett hårt block
+    // släpps uppbyggnaden före det med rave-effekten, utan ord.
     const ended = segments[lastIndex]
-    if (at.index === lastIndex + 1 && ended && !jumped(prevPos, pos) && celebrates(ended)) celebrate(ended, at.done)
+    const reached = at.index === lastIndex + 1 && ended && !jumped(prevPos, pos)
+    if (reached && celebrates(ended)) celebrate(ended, at.done)
+    else if (reached && at.segment && celebrates(at.segment)) drop(at.segment)
     lastIndex = at.index
     const seg = at.segment
     if (!seg) { finish(); return }
@@ -313,7 +324,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     nextTag.disabled = !nextSeg
     put(nextName, nextSeg?.name ?? '')
     put(nextMeta, nextSeg ? `${mmss(nextSeg.durationSec)} · ${pctText(nextSeg.fromPct, nextSeg.toPct)}` : '')
-    next.style.setProperty('--next', zoneFor(nextSeg?.fromPct ?? 0).color)
+    const nextZone = zoneFor(nextSeg?.fromPct ?? 0)
+    next.style.setProperty('--next', nextZone.color)
+    next.style.setProperty('--next-light', nextZone.textColor) // namnet, tiden och procenten i nästa zons färg
     put(remaining, mmss(Math.ceil(at.remainingMs / 1000)))
     live.chart.setPlayhead(pos / 1000)
 
@@ -339,6 +352,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     }
     countdown.hidden = n === null
     put(countdown, n === null ? '' : String(n))
+    // Uppbyggnaden inför slutet av ett hårt block hör till animationerna: A och minskade rörelser stänger av den.
+    const motion = animOn && stage && !stage.broken && !matchMedia('(prefers-reduced-motion: reduce)').matches
+    // I zonens färg för det hårda blocket: det som pågår, eller det som kommer.
+    const end = zoneFor(celebrates(seg) || !nextSeg ? seg.toPct : nextSeg.fromPct)
+    buildup.draw(run && motion ? buildupLevel(seg, nextSeg, at.remainingMs) : null, end.color, end.textColor, lightSwitch.checked, performance.now())
     cheer.hidden = performance.now() >= cheerUntil
     // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
     main.classList.toggle('dimmed', n !== null || !cheer.hidden || showBanner)
@@ -452,6 +470,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     lock?.release().catch(() => {})
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
     drops.dispose()
+    buildup.dispose()
     clearTimeout(shakeTimer)
     stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }

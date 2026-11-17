@@ -556,8 +556,14 @@ h2,
   font-weight: 600;
 }
 
+/* Borgskalan till höger om staplarna: vänsterställd, och varje siffra i sin färg på Borgskalan (sätts av chart.ts). */
+.scale.borg span {
+  right: auto;
+  left: 0.5em;
+}
+
+/* Procentsiffrorna har zonens färg (sätts av chart.ts); 100 % (FTP) står i fet stil. */
 .scale .ftp {
-  color: var(--laxrosa);
   font-weight: 800;
 }
 
@@ -902,6 +908,18 @@ h2,
   color: var(--muted);
 }
 
+/* Nästa block: namnet, tiden och procenten i nästa zons ljusa färg, med glöd i zonfärgen och samma röda och cyana
+   kant som de vita texterna (--next och --next-light sätts av run.ts). */
+.run[data-mode='live'] .next-name,
+.run[data-mode='live'] .next-meta {
+  color: var(--next-light, var(--text));
+  text-shadow: -0.025em 0 #ff2050bb, 0.025em 0 #20d8ffbb, 0 0 0.06em #000, 0 0 0.35em var(--next, transparent);
+}
+
+.run[data-mode='live'] .next-meta {
+  opacity: 0.85;
+}
+
 .run .current .label {
   color: var(--laxrosa);
 }
@@ -978,6 +996,31 @@ h2,
 .run[data-mode='live'] .top,
 .run[data-mode='live'] .current {
   text-shadow: 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
+}
+
+/* De vita texterna under passet får samma röda och cyana kant som staplarna, förskjuten åt var sitt håll, ovanpå den
+   mörka glorian. På slaget glider kanten på blockets namn isär och tonar tillbaka, som konturen på stapeln som pågår
+   (klassen pulse sätts av run.ts). Med ljusspärren, A och minskade rörelser ligger kanten still. */
+.run[data-mode='live'] .top h1,
+.run[data-mode='live'] .top .total .num,
+.run[data-mode='live'] .current .name,
+.run[data-mode='live'] .pctrow {
+  text-shadow: -0.025em 0 #ff2050bb, 0.025em 0 #20d8ffbb, 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
+}
+
+.run[data-mode='live'] .current .name {
+  transition: text-shadow 260ms ease-out;
+}
+
+.run[data-mode='live']:not(.calm-light):not(.still) .current.pulse .name {
+  text-shadow: -0.07em 0 #ff2050, 0.07em 0 #20d8ff, 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
+  transition-duration: 0ms; /* slaget syns direkt och klingar sedan av */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run[data-mode='live']:not(.calm-light):not(.still) .current.pulse .name {
+    text-shadow: -0.025em 0 #ff2050bb, 0.025em 0 #20d8ffbb, 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
+  }
 }
 
 /* Staplarna står direkt på animationen; skalans etiketter får samma mörka gloria som klockorna. */
@@ -1211,8 +1254,9 @@ h2,
   }
 }
 
-/* Effekten efter en avslutad intervall ligger mellan 3D-bilden och texten och tar inte emot musen. */
-.drop {
+/* Effekten efter en avslutad intervall och uppbyggnaden före den ligger mellan 3D-bilden och texten och tar inte emot musen. */
+.drop,
+.buildup {
   position: fixed;
   inset: 0;
   z-index: 0;

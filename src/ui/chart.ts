@@ -21,6 +21,32 @@ export function scaleTicks(top: number): number[] {
   return ticks
 }
 
+// Borgskalan (upplevd ansträngning, 6 till 20) mot procent av FTP, ungefär som träningszonerna brukar beskrivas:
+// lugnt kring 10, tempo 13, tröskel 15–16, VO2max 17–18 och korta maxinsatser 19–20. Raka linjer mellan punkterna.
+const BORG: [number, number][] = [[20, 6], [40, 7], [55, 9], [75, 12], [90, 14], [105, 16], [120, 18], [150, 20]]
+
+// Procenten av FTP som motsvarar ett värde på Borgskalan.
+export function borgPct(borg: number): number {
+  for (let i = 1; i < BORG.length; i++) {
+    const [p1, b1] = BORG[i]
+    if (borg <= b1) {
+      const [p0, b0] = BORG[i - 1]
+      return p0 + ((p1 - p0) * (Math.max(borg, b0) - b0)) / (b1 - b0)
+    }
+  }
+  return BORG[BORG.length - 1][0]
+}
+
+// Borgskalans färger, som på de vanliga Borgtavlorna: från ljusblått (ingen ansträngning) via grönt och gult
+// till orange, rött och mörkrött (maximal ansträngning). Ljusa nog att läsas mot den mörka skärmen.
+const BORG_COLORS: Record<number, string> = {
+  6: '#a8d8ff', 8: '#6cc4ec', 10: '#5fd38d', 12: '#b3dc4a', 14: '#f4d43c', 16: '#f79a2e', 18: '#f0503f', 20: '#e2304d',
+}
+export const borgColor = (borg: number) => BORG_COLORS[borg] ?? '#ffffff'
+
+// Borgvärdena som ryms under bildens topp: jämna tal från 6 till 20.
+export const borgTicks = (top: number) => [6, 8, 10, 12, 14, 16, 18, 20].filter(b => borgPct(b) < top)
+
 export function chartShapes(segments: Segment[], width: number, height: number): Shape[] {
   const total = totalDuration(segments)
   const top = scaleTop(segments)
@@ -53,19 +79,23 @@ function el(tag: string, attrs: Record<string, string | number>): SVGElement {
 }
 
 // En ram med skalans kolumn till vänster och bilden till höger. Ramen får storleken, bilden fyller resten.
-export function chartFrame(svg: SVGSVGElement): { frame: HTMLElement; scale: HTMLElement } {
+// Procentskalan står till vänster och Borgskalan till höger.
+export function chartFrame(svg: SVGSVGElement): { frame: HTMLElement; scale: HTMLElement; borg: HTMLElement } {
   const frame = document.createElement('div')
   frame.className = 'chart-frame'
   const scale = document.createElement('div')
   scale.className = 'scale'
   scale.setAttribute('aria-hidden', 'true')
-  frame.append(scale, svg)
-  return { frame, scale }
+  const borg = document.createElement('div')
+  borg.className = 'scale borg'
+  borg.setAttribute('aria-hidden', 'true')
+  frame.append(scale, svg, borg)
+  return { frame, scale, borg }
 }
 
 // Med scale ritas linjer var 25:e procent i bilden och etiketterna i scale, som står bredvid bilden (se chartFrame).
 // mirror: false tar bort spegelgolvet, så att staplarna står ända nere vid bildens underkant (passkärmen).
-export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement, { mirror: withFloor = true } = {}): Chart {
+export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement, { mirror: withFloor = true, borg }: { mirror?: boolean; borg?: HTMLElement } = {}): Chart {
   const floor = withFloor ? FLOOR : 0
   svg.replaceChildren()
   svg.setAttribute('viewBox', `0 0 ${W} ${H + floor}`)
@@ -159,8 +189,17 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#fff6f4', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
       const label = document.createElement('span')
       label.textContent = `${t} %`
+      label.style.color = zoneFor(t).textColor // zonens färg, som Borgsiffrorna till höger
       label.style.top = `${y / (H + floor) * 100}%`
       if (t === 100) label.className = 'ftp'
+      return label
+    }))
+    // Borgskalan till höger: samma höjd som procenten den motsvarar.
+    borg?.replaceChildren(...borgTicks(top).map(b => {
+      const label = document.createElement('span')
+      label.textContent = String(b)
+      label.style.color = borgColor(b)
+      label.style.top = `${(H - borgPct(b) / top * H) / (H + floor) * 100}%`
       return label
     }))
   }

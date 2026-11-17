@@ -38,7 +38,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
   const total = el('span')
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('role', 'img')
-  const { frame, scale } = chartFrame(svg)
+  const { frame, scale, borg } = chartFrame(svg)
   const list = el('div', { className: 'items' })
   // Knappar som ska kunna få fokus igen efter att listan ritats om, med nyckeln "<id>:<åtgärd>".
   const buttons = new Map<string, HTMLButtonElement>()
@@ -73,7 +73,7 @@ function editor(store: Store, root: HTMLElement, main: HTMLElement, w: Workout):
     error.textContent = r.ok ? '' : r.error
     if (!r.ok) return false
     const segments = flatten(r.workout)
-    renderChart(svg, segments, scale)
+    renderChart(svg, segments, scale, { borg })
     svg.setAttribute('aria-label', `Stapelbild för ${r.workout.name}`)
     total.textContent = mmss(totalDuration(segments))
     return true
