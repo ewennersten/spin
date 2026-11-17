@@ -617,10 +617,11 @@ h1 {
   height: 33vh;
 }
 
-/* Under passet ligger texten på mörka plattor, så att klockorna går att läsa framför 3D-bilden.
-   92 % täckning ger minst 7:1 även när det bakom är helvitt (se src/ui/contrast.ts). */
+/* Under passet ligger texten på mörka plattor, så att den går att läsa framför 3D-bilden.
+   92 % täckning ger minst 7:1 även när det bakom är helvitt (se src/ui/contrast.ts).
+   Blockets namn, procent och klockor (.current) har ingen platta, så att animationen syns mellan dem.
+   De står i stället i en mörk gloria; ljusspärren håller bilden mörk i snitt. */
 .run[data-mode='live'] .top,
-.run[data-mode='live'] .current,
 .run[data-mode='live'] .chart,
 .run[data-mode='live'] .beat,
 .run[data-mode='live'] .error:not(:empty),
@@ -636,9 +637,10 @@ h1 {
   padding: 1vh 2vw;
 }
 
-/* Plattan med klockorna har ett rött streck till vänster, som en startnummerlapp. */
+/* Klockorna har ett rött streck till vänster, som en startnummerlapp. */
 .run[data-mode='live'] .current {
   border-left: 1vh solid var(--rod);
+  text-shadow: 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
 }
 
 .run[data-mode='live'] .chart {
