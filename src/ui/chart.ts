@@ -10,8 +10,10 @@ export function chartShapes(segments: Segment[], width: number, height: number):
   const top = Math.max(120, ...segments.flatMap(s => [s.fromPct, s.toPct]))
   const y = (pct: number) => height - pct / top * height
   return segments.map(s => {
-    const x0 = s.startSec / total * width + 1
-    const x1 = (s.startSec + s.durationSec) / total * width - 1
+    // En enhets luft på var sida, men högst en fjärdedel av blockets bredd, så att ett mycket kort block syns och aldrig får negativ bredd.
+    const gap = Math.min(1, s.durationSec / total * width / 4)
+    const x0 = s.startSec / total * width + gap
+    const x1 = (s.startSec + s.durationSec) / total * width - gap
     return {
       points: `${x0},${height} ${x0},${y(s.fromPct)} ${x1},${y(s.toPct)} ${x1},${height}`,
       fromColor: zoneFor(s.fromPct).color,
@@ -66,8 +68,10 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[]): Chart {
       if (!show) return
       const x = Math.min(Math.max(posSec, 0), total) / total * W
       dim.setAttribute('width', String(x))
-      line.setAttribute('x1', String(x))
-      line.setAttribute('x2', String(x))
+      // Linjen är 4 enheter bred, så dess mitt hålls inom 2 till 998 för att den ska synas hel vid kanterna.
+      const lineX = String(Math.min(Math.max(x, 2), W - 2))
+      line.setAttribute('x1', lineX)
+      line.setAttribute('x2', lineX)
     },
   }
 }
