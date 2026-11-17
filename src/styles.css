@@ -515,6 +515,46 @@ body {
   border: 0.4vh solid var(--text);
 }
 
+/* 3D-bilden bakom skärmen och kantramen framför den. Ingen av dem tar emot musen. */
+.stage,
+.edge {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stage {
+  z-index: 0;
+}
+
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.edge {
+  z-index: 2;
+  opacity: 0;
+  box-shadow: inset 0 0 0 1.2vh currentColor;
+}
+
+/* Mätrutan för ljuset (?ljus=1), nere till vänster. */
+.light-meter {
+  position: fixed;
+  left: 1vw;
+  bottom: 1vh;
+  z-index: 3;
+  padding: 0.4em 0.7em;
+  border-radius: 1vh;
+  background: #0b0b0beb;
+  color: var(--text);
+  font-size: 2vh;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-line;
+  pointer-events: none;
+}
+
 /* Mikrofonpanelen i överblicken. Den är till för den som provar takten, så den är mindre än resten. */
 .run #mic-panel {
   display: flex;
