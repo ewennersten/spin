@@ -74,7 +74,12 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     el('stop', { offset: 1, 'stop-color': '#000000', 'stop-opacity': 0.5 }),
   )
   defs.append(shade)
+  // Det avklarade mörknar bara på staplarna, så att bakgrunden bakom bilden (under passet animationen) syns orörd.
+  const clipId = `chart-${chartId}-bars`
+  const clip = el('clipPath', { id: clipId })
+  defs.append(clip)
   const bars = chartShapes(segments, W, H).map((shape, i) => {
+    clip.append(el('polygon', { points: shape.points }))
     let fill = shape.fromColor
     if (shape.toColor !== shape.fromColor) {
       const id = `chart-${chartId}-${i}`
@@ -112,7 +117,7 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     }))
   }
 
-  const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#000000', opacity: 0.6, display: 'none' })
+  const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#000000', opacity: 0.6, display: 'none', 'clip-path': `url(#${clipId})` })
   const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#fff6f4', 'stroke-width': 4, display: 'none' })
   svg.append(dim, line)
 

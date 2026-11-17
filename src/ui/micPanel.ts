@@ -1,13 +1,15 @@
 import type { BeatSource } from '../audio/beatSource'
-import type { Mic } from '../audio/mic'
+import { NoAudioError, type Mic } from '../audio/mic'
 import type { MicSettings } from '../model/types'
 import type { Store } from '../storage/storage'
 import { el, message } from './dom'
 
-export interface MicControl { getMic(): Mic | null; enableMic(): Promise<void> }   // ägs av run.ts
+export interface MicControl { getMic(): Mic | null; enableMic(): Promise<void>; enableSystem(): Promise<void> }   // ägs av run.ts
 
 const DENIED = 'Mikrofonen är inte tillåten. Appen använder intern takt.'
 const FAILED = 'Mikrofonen gick inte att slå på. Appen använder intern takt.'
+const NO_SHARE = 'Ingen skärm delades, så appen hör inte datorns ljud. Appen använder intern takt.'
+const NO_AUDIO = 'Inget ljud delades. Välj Hela skärmen och slå på systemljud, eller en flik där musiken spelas och slå på flikens ljud.'
 const BAD_BAND = 'Basbandet ska ligga mellan 20 och 500 Hz, och den undre gränsen måste vara lägre än den övre.'
 const LAMP_MS = 120
 
@@ -26,6 +28,7 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
   const micStatus = el('p', { className: 'error', role: 'alert' })
   const status = el('p', { className: 'error', role: 'alert' })
   const button = el('button', { type: 'button', textContent: 'Slå på mikrofonen' })
+  const systemButton = el('button', { type: 'button', textContent: 'Lyssna på datorns ljud' })
   const meter = el('meter', { min: 0, max: 1, value: 0 })
   const lamp = el('span', { className: 'lamp', ariaHidden: 'true' })
   const modeText = el('span', { className: 'mode' })
@@ -45,6 +48,14 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
       micStatus.textContent = e instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(e.name) ? DENIED : FAILED
     })
   }
+  systemButton.onclick = () => {
+    systemButton.blur()
+    micStatus.textContent = ''
+    ctl.enableSystem().catch(e => {
+      micStatus.textContent = e instanceof NoAudioError ? NO_AUDIO
+        : e instanceof DOMException && e.name === 'NotAllowedError' ? NO_SHARE : FAILED
+    })
+  }
   sens.oninput = () => {
     source.detector.sensitivity = sens.valueAsNumber
     sensText.textContent = sens.value
@@ -62,10 +73,12 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
   }
 
   const row1 = el('div', { className: 'row' })
-  row1.append(button, field('Nivå', meter), lamp, modeText)
+  const sources = el('div', { className: 'row' })
+  sources.append(button, systemButton)
+  row1.append(field('Nivå', meter), lamp, modeText)
   const row2 = el('div', { className: 'row' })
   row2.append(field('Känslighet', sens), sensText, field('Basband', lo, 'Hz'), field('till', hi, 'Hz'))
-  root.append(row1, row2, micStatus, status)
+  root.append(sources, row1, row2, micStatus, status)
 
   store.getMicSettings().then(s => {
     sens.value = String(s.sensitivity)
@@ -84,7 +97,7 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
       if (mic && f.beat) litUntil = t + LAMP_MS
       lamp.classList.toggle('on', mic && t < litUntil)
       meter.value = meterValue(f.level)
-      const text = mic ? 'Mikrofon' : 'Intern takt: mikrofonen används inte just nu'
+      const text = mic ? ctl.getMic()?.label ?? 'Mikrofon' : 'Intern takt: inget ljud används just nu'
       if (modeText.textContent !== text) modeText.textContent = text
     },
   }

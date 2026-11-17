@@ -49,19 +49,19 @@ Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen n�
 | Tangent | Gör |
 |---------|-----|
 | Mellanslag | I överblicken: startar passet, även när reglaget eller ett talfält i mikrofonpanelen har fokus. Under passet: pausar och fortsätter. Står fokus på en knapp trycker mellanslag på knappen. |
-| Pil höger | Hoppar till nästa block. I sista blocket gör den ingenting. |
+| Pil höger | Hoppar till nästa block. I sista blocket gör den ingenting. Samma sak händer om du klickar på lappen **Nästa** under klockan. |
 | Pil vänster | Går tillbaka till början av blocket. Under blockets första tre sekunder: till föregående block. |
 | Pil upp, pil ned | Under passet: höjer eller sänker mikrofonens känslighet ett steg. Värdet sparas. |
 | F | Fullskärm av och på. |
 | A | I överblicken och under passet: stänger av och sätter på animationerna. Överblicken visar valet under "Mellanslag startar passet", så att du kan stänga av före start. Har du just rört mikrofonpanelen: klicka utanför den först, annars går tangenten till panelen. Valet sparas, till skillnad från M, och gäller även efter en omladdning och nästa pass. Saknar datorn stöd för 3D-grafik gör A ingenting. |
 | M | Under passet: växlar mellan mikrofonen och den interna takten. Mikrofonen är fortfarande öppen, så webbläsarens mikrofonsymbol lyser kvar. Valet sparas inte: efter en omladdning används mikrofonen igen. |
-| Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket** (använd länken om du just har rört mikrofonpanelen). Under passet: avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
+| Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket** (använd länken om du just har rört mikrofonpanelen). Under passet: frågar om passet ska avslutas. Enter avslutar, R börjar om från början, valfri annan tangent fortsätter. |
 
 Esc lämnar fullskärm men avslutar inte passet.
 
 Laddas sidan om mitt i passet fortsätter klockan där den var. Tryck F för att få fullskärm igen.
 
-Ett pass som lämnades utan Q, till exempel med bakåtknappen eller en stängd flik, återupptas när du trycker **Starta** vid samma pass igen inom fyra timmar, om passets tid inte redan har gått ut. Klockan har gått under tiden: lämnade du passet vid 20:00 och kommer tillbaka fem minuter senare visar skärmen 25:00. Bara ett pausat pass står kvar där det var. Vill du börja om från början: avsluta passet med Q och Enter, och tryck **Starta** igen.
+Ett pass som lämnades utan Q, till exempel med bakåtknappen eller en stängd flik, återupptas när du trycker **Starta** vid samma pass igen inom fyra timmar, om passets tid inte redan har gått ut. Klockan har gått under tiden: lämnade du passet vid 20:00 och kommer tillbaka fem minuter senare visar skärmen 25:00. Bara ett pausat pass står kvar där det var. I biblioteket syns ett sådant pass med ett rött streck och texten **Pågår vid** eller **Pausat vid** och tiden där klockan stod när biblioteket öppnades. Där står **Fortsätt** i stället för **Starta**, och **Stoppa** rensar läget så att passet börjar om från början nästa gång. Under passet kan du också börja om från början: tryck **Q** och sedan **R**. Då visas överblicken igen, med klockan på noll, och där kan du också välja mikrofon eller datorns ljud på nytt.
 
 ## Mikrofonen
 
@@ -84,6 +84,16 @@ Appen går över till **intern takt** (130 slag per minut) när mikrofonen är a
 
 Har du redan tillåtit mikrofonen startar den vid första tangenttryckningen eller klicket, även efter en omladdning mitt i passet.
 
+### Lyssna på datorns ljud i stället
+
+Spelar du musiken från samma dator kan appen lyssna direkt på datorns ljud. Då hör den takten utan att salens ljud, rösten eller mikrofonens svaga bas stör.
+
+1. Klicka **Lyssna på datorns ljud** i panelen **Musikens takt**.
+2. Chrome frågar vad som ska delas. Välj **Hela skärmen** och slå på att systemljudet delas. Spelar musiken i en Chrome-flik (till exempel Spotify på webben) kan du i stället välja den fliken och slå på flikens ljud.
+3. Klicka **Dela**. Det ska stå **Datorns ljud** i panelen och nere till höger under passet.
+
+Systemljud från hela skärmen kräver en ny Chrome (version 141 eller senare) och macOS 14.2 eller senare. Bilden från skärmen används inte. Klickar du **Sluta dela** går appen över till intern takt. Laddas sidan om mitt i passet visas ingen överblick, så då går datorns ljud inte att välja igen förrän nästa pass. Mikrofonen startar i stället av sig själv, om den är tillåten, och **M** växlar till intern takt.
+
 ### Om mikrofonen inte är tillåten
 
 Har mikrofonen nekats en gång frågar webbläsaren inte igen. Klicka då på symbolen till vänster om adressen, tillåt mikrofonen och ladda om sidan.
@@ -96,9 +106,11 @@ Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällt
 
 ## Animationerna
 
-Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Klockorna och texterna ligger på mörka plattor, så att de går att läsa framför animationen. I överblicken och efter passet är bakgrunden mörk. Under nedräkningen före ett nytt block och medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Passets namn, stapelbilden och takt-rutan ligger på mörka plattor. Blockets namn, procenten och klockan står direkt på animationen med en mörk skugga runt bokstäverna. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
 
-Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
+Under nedräkningen de sista fem sekunderna står siffran stort mitt på skärmen, och klockorna tonas ned. När ett hårt block (från 76 % av FTP och minst 15 sekunder långt) har körts klart smäller ett fyrverkeri i skärmens övre del, och ett ord som "Starkt jobbat!" poppar fram. Hoppar du förbi blocket med pilarna blir det inget fyrverkeri.
+
+Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, fyrverkeriet uteblir (ordet visas ändå), och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
 
 Saknar datorn stöd för 3D-grafik (WebGL), eller tappas den mitt i passet, fortsätter skärmen som vanligt utan animationer.
 
@@ -120,6 +132,7 @@ Ta med det här till salen och bocka av:
 - [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt.
 - [ ] Klockorna går att läsa från den bakersta cykeln medan animationen går.
 - [ ] A stänger av animationerna, och det står **Animationer av** nere till höger.
+- [ ] Fyrverkeriet efter ett hårt block bländar inte, och nedräkningens siffror går att läsa framför animationen.
 - [ ] Den röda kantramen i VO2max-intervallerna känns inte för stark, och inte som ett blink över hela skärmen.
 - [ ] Vila och paus ser lagom dämpade ut: lugna, men inte avstängda.
 - [ ] Inget i bilden ser ut att flimra i takt med musiken utöver pulserna, till exempel staplar och berg som ändrar storlek med basen.

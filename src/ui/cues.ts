@@ -1,3 +1,5 @@
+import type { Segment } from '../model/types'
+
 // Regler för skärmens signaler. Alla tider är i millisekunder av passet, utom där namnet säger Sec.
 
 export function countdownNumber(durationSec: number, remainingMs: number): number | null {
@@ -18,6 +20,11 @@ export function pepIntervalSec(pctNow: number): number | null {
 // Ett ord syns i fyra sekunder, så det får börja först när mer än 14 s är kvar: inget ord under de sista tio.
 export function pepAllowed(pctNow: number, elapsedMs: number, remainingMs: number): boolean {
   return pctNow >= 88 && !bannerVisible(elapsedMs) && remainingMs > 14000
+}
+
+// Ett block som körts klart firas om det hade nedräkning och nådde zonen Tempo (76 %) eller högre.
+export function celebrates(s: Segment): boolean {
+  return countdownNumber(s.durationSec, 1000) !== null && Math.max(s.fromPct, s.toPct) >= 76
 }
 
 export function jumped(prevPosMs: number, posMs: number): boolean {

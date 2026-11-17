@@ -1,8 +1,9 @@
+import { createFireworks } from '../anim/fireworks'
 import { createStage } from '../anim/stage'
 import { SCENES } from '../anim/scenes'
 import { BeatDetector } from '../audio/beat'
 import { BeatSource, type MicReading } from '../audio/beatSource'
-import { openMic, type Mic } from '../audio/mic'
+import { openMic, openSystemAudio, type Mic } from '../audio/mic'
 import { IDLE, pause, position, seek, start, type ClockState } from '../clock/clock'
 import { locate, nextStartMs, prevStartMs, type Located } from '../clock/lookup'
 import { clearRun, loadRun, saveRun } from '../clock/runState'
@@ -13,7 +14,7 @@ import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
 import { chartFrame, renderChart } from './chart'
-import { bannerVisible, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { bannerVisible, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 import { el, link, logo, message, sports } from './dom'
 import { mountMicPanel } from './micPanel'
 
@@ -25,6 +26,9 @@ function length(sec: number): string {
 }
 const part = (b: Block) => `${length(b.durationSec)} ${pctText(b.fromPct, b.toPct)}`
 const itemText = (i: Item) => (i.kind === 'block' ? part(i) : `${i.repeat} × (${i.blocks.map(part).join(' + ')})`)
+
+// Orden när ett hårt block är klart.
+const CHEERS = ['Starkt jobbat!', 'Grymt kört!', 'Snyggt!', 'Vilken kraft!', 'Ni äger!', 'Klart – starkt!']
 
 // Texten skrivs bara när den ändras, så att varje bildruta inte skriver om sidan.
 const put = (e: HTMLElement, text: string) => { if (e.textContent !== text) e.textContent = text }
@@ -76,9 +80,19 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let micAuto = false
   let drawPanel = () => {}
   let litUntil = 0
+  // Fyrverkeriet och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
+  const sky = createFireworks()
+  let lastIndex = 0
+  let cheerUntil = 0
+  let lastCheer = ''
+  let calmZone = true // vila, uppvärmning och nedvarvning (zonerna Vila och Lugnt) pulserar inte
 
   const live = bars(w, segments)
+  // Orden och siffrorna i total tid har olika stil (se .top .total i styles.css), så att de inte flyter ihop.
+  const elapsedText = el('span', { className: 'num' })
   const totalText = el('p', { className: 'total' })
+  totalText.append(el('span', { className: 'word', textContent: 'Total tid ' }), elapsedText,
+    el('span', { className: 'word', textContent: ' av ' }), el('span', { className: 'num', textContent: mmss(total) }))
   const top = el('header', { className: 'top' })
   top.append(el('h1', { textContent: w.name }), totalText)
   const status = el('p', { className: 'error', role: 'alert' })
@@ -86,12 +100,22 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const pct = el('span', { className: 'pct' })
   const pctRow = el('p', { className: 'pctrow' })
   pctRow.append(pct, ' av FTP')
+  // Raden Nästa: en lapp i nästa blocks zonfärg, namnet och längd och procent.
+  // Lappen är en knapp: ett klick hoppar till nästa block, som pil höger.
+  const nextTag = el('button', { type: 'button', className: 'tag', title: 'Hoppa till nästa block (pil höger)' })
+  nextTag.onclick = () => {
+    nextTag.blur() // annars trycker nästa mellanslag på knappen i stället för att pausa
+    if (!quitting && skipToNext(now())) persist()
+  }
+  const nextName = el('span', { className: 'next-name' })
+  const nextMeta = el('span', { className: 'next-meta' })
   const next = el('p', { className: 'next' })
+  next.append(nextTag, nextName, nextMeta)
   const remaining = el('p', { className: 'remaining' })
   const pctLine = el('div', { className: 'split' })
   pctLine.append(pctRow, remaining)
   const nextLine = el('div', { className: 'split' })
-  nextLine.append(next, el('p', { className: 'label', textContent: 'kvar av intervallet' }))
+  nextLine.append(next, el('p', { className: 'label', textContent: 'kvar av intervallen' }))
   const current = el('section', { className: 'current' })
   current.append(blockName, pctLine, nextLine)
   const bannerName = el('p', { className: 'banner-name' })
@@ -100,10 +124,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   banner.append(bannerName, bannerInfo)
   const countdown = el('p', { className: 'countdown', hidden: true })
   const pep = el('p', { className: 'pepword', hidden: true })
+  const cheer = el('p', { className: 'cheer', hidden: true })
   const paused = el('p', { className: 'paused', textContent: 'Pausad', hidden: true })
   const fullscreenHint = el('p', { className: 'fullscreen-hint', textContent: 'Tryck F för fullskärm', hidden: true })
   const quit = el('p', { className: 'quit', role: 'alert', hidden: true })
-  quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, valfri annan tangent fortsätter')
+  quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, R börjar om från början, valfri annan tangent fortsätter')
   const animLine = el('p', { className: 'label', hidden: true })
   const beatDot = el('span', { className: 'lamp', ariaHidden: 'true' })
   const beatMode = el('span')
@@ -121,23 +146,44 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // En grupp utan block ger inget på skärmen och skrivs inte heller här.
     list.append(...w.items.filter(i => i.kind === 'block' || i.blocks.length).map(i => el('li', { textContent: itemText(i) })))
     const panel = el('div', { id: 'mic-panel' })
+    panel.append(el('h2', { textContent: 'Musikens takt' }))
     // Länken står på samma rad som uppmaningen, så att den inte hamnar under kanten.
     const startRow = el('div', { className: 'split' })
     startRow.append(el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), link('Till biblioteket', '#/'))
+    // Mikrofonpanelen står bredvid passets innehåll, så att knappen syns utan att man rullar.
+    const left = el('div', { className: 'overview-left' })
+    left.append(list, startRow)
+    const right = el('div', { className: 'overview-right' })
+    right.append(panel, animLine)
+    const row = el('div', { className: 'overview-row' })
+    row.append(left, right)
     show('overview', logo(), el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
-      bars(w, segments).node, list, startRow, animLine, panel)
-    drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic }).draw
+      bars(w, segments).node, row)
+    drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic, enableSystem }).draw
   }
 
   function begin() {
-    show('live', top, status, current, live.node, banner, countdown, pep, paused, fullscreenHint, quit, beatBox)
+    show('live', top, status, current, live.node, banner, cheer, countdown, pep, paused, fullscreenHint, quit, beatBox)
     prevPos = pepFrom = position(clock, now())
+    lastIndex = locate(segments, prevPos).index
   }
 
   function finish() {
     quitting = false
     forget()
     show('done', sports(), el('h1', { textContent: 'Bra jobbat!' }), logo(), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }), link('Till biblioteket', '#/'))
+  }
+
+  // Ordet visas i realtid (även med ?fart). Fyrverkeriet hör till animationerna: A och minskade rörelser stänger av det.
+  function celebrate(s: Segment, last: boolean) {
+    if (!last) {
+      const pool = CHEERS.filter(c => c !== lastCheer)
+      lastCheer = pool[Math.floor(Math.random() * pool.length)]
+      put(cheer, lastCheer)
+      cheerUntil = performance.now() + 2600
+    }
+    if (animOn && stage && !stage.broken && !matchMedia('(prefers-reduced-motion: reduce)').matches)
+      sky.launch(['#d7192d', '#ffffff', '#f7b1aa', zoneFor(s.toPct).color, '#ffd166'])
   }
 
   function persist() {
@@ -170,9 +216,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     }
     const at = mode === 'live' ? draw(t) : undefined
     sound()
-    // Efter draw, som kan ha avslutat passet. Dold under nedräkningens och avslutsrutans slöja, så att bilden
-    // tonar upp under ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
-    const visible = mode === 'live' && animOn && countdown.hidden === true && quit.hidden === true
+    // Efter draw, som kan ha avslutat passet. Dold under avslutsrutans slöja, så att bilden tonar upp under
+    // ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
+    const visible = mode === 'live' && animOn && quit.hidden === true
     if (visible !== stageShown) stage?.setVisible(stageShown = visible)
     if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, beat: source.frame, nowMs: performance.now() })
   }
@@ -188,22 +234,25 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // Fylld prick för mikrofonen och tom ring för den interna takten, så att läget syns utan att läsa texten.
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
-    // Procenten, klockan och stapeln som pågår lyser upp i takt.
-    const pulse = t < litUntil && clock.running
+    // Procenten, klockan och stapeln som pågår lyser upp i takt, men bara från zonen Tempo och uppåt.
+    const pulse = t < litUntil && clock.running && !calmZone
     current.classList.toggle('pulse', pulse)
     live.node.classList.toggle('pulse', pulse)
     beatDot.classList.toggle('ring', f.mode === 'intern')
-    put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
+    put(beatMode, (f.mode === 'mic' ? mic?.label ?? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
   }
 
-  // Ett nytt tryck på knappen öppnar mikrofonen på nytt, till exempel efter att den har kopplats ur.
-  async function enableMic() {
+  // Ett nytt tryck på en knapp öppnar källan på nytt, till exempel efter att mikrofonen har kopplats ur.
+  // Den nya källan ersätter den gamla, och mikrofonen öppnas sedan inte av sig själv över datorns ljud.
+  async function enable(open: typeof openMic) {
     micAuto = false
-    const m = await openMic(await store.getMicSettings())
+    const m = await open(await store.getMicSettings())
     if (!alive) return m.close()
     mic?.close()
     mic = m
   }
+  const enableMic = () => enable(openMic)
+  const enableSystem = () => enable(openSystemAudio)
   // Webbläsaren startar bara ljud efter en tangenttryckning eller ett klick, och inte efter till exempel Esc.
   function autoMic() {
     if (micAuto && navigator.userActivation?.isActive) enableMic().catch(() => {})
@@ -220,6 +269,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   function draw(t: number): Located | undefined {
     const pos = position(clock, t)
     const at = locate(segments, pos)
+    // Ett hårt block som har körts klart, och inte hoppats förbi med pilarna, firas.
+    const ended = segments[lastIndex]
+    if (at.index === lastIndex + 1 && ended && !jumped(prevPos, pos) && celebrates(ended)) celebrate(ended, at.done)
+    lastIndex = at.index
     const seg = at.segment
     if (!seg) { finish(); return }
     // Efter en dold flik, sömn eller ett hopp börjar tiden till nästa peppord om, så att inget spelas upp i efterhand.
@@ -229,13 +282,18 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
 
     const nextSeg = segments[at.index + 1]
     const shownPct = Math.round(at.pctNow)
-    put(totalText, `Total tid ${mmss(Math.floor(pos / 1000))} av ${mmss(total)}`)
+    put(elapsedText, mmss(Math.floor(pos / 1000)))
     put(blockName, seg.name)
     put(pct, `${shownPct} %`)
     const zone = zoneFor(shownPct)
     pct.style.color = zone.textColor
     pct.style.setProperty('--zone', zone.color)
-    put(next, nextSeg ? `Nästa: ${nextSeg.name} · ${mmss(nextSeg.durationSec)} · ${pctText(nextSeg.fromPct, nextSeg.toPct)}` : 'Sista blocket')
+    calmZone = zone.id === 'vila' || zone.id === 'lugnt'
+    put(nextTag, nextSeg ? 'Nästa' : 'Sista blocket')
+    nextTag.disabled = !nextSeg
+    put(nextName, nextSeg?.name ?? '')
+    put(nextMeta, nextSeg ? `${mmss(nextSeg.durationSec)} · ${pctText(nextSeg.fromPct, nextSeg.toPct)}` : '')
+    next.style.setProperty('--next', zoneFor(nextSeg?.fromPct ?? 0).color)
     put(remaining, mmss(Math.ceil(at.remainingMs / 1000)))
     live.chart.setPlayhead(pos / 1000)
 
@@ -261,11 +319,22 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     }
     countdown.hidden = n === null
     put(countdown, n === null ? '' : String(n))
+    cheer.hidden = performance.now() >= cheerUntil
+    // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
+    main.classList.toggle('dimmed', n !== null || !cheer.hidden)
     pep.hidden = !run || t >= pepUntil
     paused.hidden = run
     if (document.fullscreenElement) hint = false
     fullscreenHint.hidden = !hint
     return at
+  }
+
+  // I sista blocket hoppar den inte, så att passet inte avslutas utan bekräftelse. Ger true om klockan flyttades.
+  function skipToNext(t: number): boolean {
+    const to = nextStartMs(segments, position(clock, t))
+    if (to >= total * 1000) return false
+    clock = seek(clock, to, t)
+    return true
   }
 
   function onKey(e: KeyboardEvent) {
@@ -284,6 +353,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       quitting = false
       quit.hidden = true
       if (e.key === 'Enter') { forget(); location.hash = '#/' }
+      // Börja om: det sparade läget rensas och överblicken visas igen, där ljudkällan kan väljas på nytt.
+      else if (e.key.toLowerCase() === 'r') { forget(); clock = IDLE; overview() }
       return
     }
     const key = e.key.toLowerCase()
@@ -310,12 +381,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     }
     if (mode !== 'live') return
     if (key === ' ') clock = clock.running ? pause(clock, t) : start(clock, t)
-    else if (key === 'arrowright') {
-      // I sista blocket gör pil höger inget, så att passet inte avslutas utan bekräftelse.
-      const to = nextStartMs(segments, position(clock, t))
-      if (to >= total * 1000) return
-      clock = seek(clock, to, t)
-    }
+    else if (key === 'arrowright') { if (!skipToNext(t)) return }
     else if (key === 'arrowleft') clock = seek(clock, prevStartMs(segments, position(clock, t)), t)
     else if (key === 'q') { quitting = true; quit.hidden = false; return }
     else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
@@ -357,6 +423,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     document.removeEventListener('visibilitychange', onVisible)
     lock?.release().catch(() => {})
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
+    sky.dispose()
     stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }
 }

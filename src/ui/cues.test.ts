@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { bannerVisible, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
+import { bannerVisible, celebrates, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 
 it('räknar ned de sista fem sekunderna på block från 15 sekunder', () => {
   expect(countdownNumber(15, 5001)).toBeNull()
@@ -33,4 +33,13 @@ it('märker när positionen har hoppat', () => {
   expect(jumped(1000, 3001)).toBe(true)
   expect(jumped(600000, 9e9)).toBe(true)
   expect(jumped(5000, 4000)).toBe(true)
+})
+it('firar bara hårda block med nedräkning', () => {
+  const block = (durationSec: number, fromPct: number, toPct: number) => ({ name: '', startSec: 0, durationSec, fromPct, toPct })
+  expect(celebrates(block(240, 115, 115))).toBe(true)
+  expect(celebrates(block(30, 110, 110))).toBe(true)
+  expect(celebrates(block(600, 60, 76))).toBe(true)
+  expect(celebrates(block(90, 55, 55))).toBe(false)
+  expect(celebrates(block(600, 45, 70))).toBe(false)
+  expect(celebrates(block(10, 120, 120))).toBe(false)
 })

@@ -227,6 +227,45 @@ h2,
   font-variant-numeric: tabular-nums;
 }
 
+/* Ett pass som pågår eller är pausat: rött streck, en lysande prick och var klockan står. */
+.workout.ongoing {
+  border-left-color: var(--rod);
+  background: linear-gradient(90deg, #5a0c1766, transparent 70%);
+}
+
+.workout .ongoing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--laxrosa);
+  font-family: var(--display);
+  font-stretch: 85%;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.workout .ongoing::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rod);
+  box-shadow: 0 0 8px var(--rod);
+  animation: ongoing-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes ongoing-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout .ongoing::before {
+    animation: none;
+  }
+}
+
 .workout svg {
   flex: none;
   width: 280px;
@@ -396,9 +435,15 @@ h2,
   white-space: nowrap;
 }
 
+.scale span {
+  font-family: var(--display);
+  font-stretch: 85%;
+  font-weight: 600;
+}
+
 .scale .ftp {
-  color: var(--text);
-  font-weight: 700;
+  color: var(--laxrosa);
+  font-weight: 800;
 }
 
 .error {
@@ -541,7 +586,7 @@ h2,
 }
 
 .run[data-mode='overview'] .chart {
-  height: 33vh;
+  height: 28vh;
 }
 
 .run .contents {
@@ -616,7 +661,20 @@ h2,
   flex: none;
 }
 
-/* Procenten bredvid nedräkningen och "Nästa:" bredvid "kvar av intervallet", så att raden Nästa får nästan hela bredden. */
+/* Total tid: orden små och dämpade i brödtypsnittet, siffrorna vita i tekno-typsnittet. */
+.run .top .total .word {
+  font-size: 0.75em;
+  color: var(--muted);
+}
+
+.run .top .total .num {
+  font-family: var(--display);
+  font-stretch: 85%;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Procenten bredvid nedräkningen och "Nästa:" bredvid "kvar av intervallen", så att raden Nästa får nästan hela bredden. */
 .run .current {
   margin: auto 0;
 }
@@ -667,8 +725,60 @@ h2,
   text-shadow: 0 0 0.04em #000, 0 0 0.12em #000, 0 0 0.45em var(--zone, transparent);
 }
 
+/* Raden Nästa och de små texterna kring klockorna i samma tekno-stil som siffrorna. */
+.run .next,
+.run .current .label,
+.run .pctrow {
+  font-family: var(--display);
+  font-stretch: 85%;
+  font-weight: 600;
+}
+
 .run .next {
   font-size: calc(5.5 * var(--u));
+}
+
+/* Lappen lutar som remsorna och har nästa blocks zonfärg (--next sätts av run.ts). */
+/* Lappen lutar ut åt vänster, så den får lite luft där, annars klipps hörnet av radens kant. */
+.run .next .tag {
+  display: inline-block;
+  margin-left: 0.15em;
+  margin-right: 0.45em;
+  padding: 0.02em 0.45em;
+  border: 0.1em solid var(--next, var(--rod));
+  background: color-mix(in srgb, var(--next, var(--rod)) 35%, #000000b3);
+  font-family: inherit;
+  font-stretch: inherit;
+  font-size: 0.78em;
+  font-weight: 800;
+  line-height: inherit;
+  color: var(--text);
+  text-shadow: inherit;
+  vertical-align: 0.1em;
+  transform: skewX(-8deg);
+  cursor: pointer;
+}
+
+/* Lappen är också knappen som hoppar till nästa block. I sista blocket går den inte att trycka på. */
+.run .next .tag:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--next, var(--rod)) 75%, #000000b3);
+}
+
+.run .next .tag:disabled {
+  cursor: default;
+}
+
+.run .next-name {
+  font-weight: 800;
+}
+
+.run .next-meta {
+  margin-left: 0.5em;
+  color: var(--muted);
+}
+
+.run .current .label {
+  color: var(--laxrosa);
 }
 
 /* Klockan tonar från vitt till laxrosa, som tridräkten. Skuggan är ett filter, eftersom en textskugga
@@ -717,10 +827,9 @@ h2,
 
 /* Under passet ligger texten på mörka plattor, så att den går att läsa framför 3D-bilden.
    92 % täckning ger minst 7:1 även när det bakom är helvitt (se src/ui/contrast.ts).
-   Blockets namn, procent och klockor (.current) har ingen platta, så att animationen syns mellan dem.
-   De står i stället i en mörk gloria; ljusspärren håller bilden mörk i snitt. */
+   Blockets namn, procent och klockor (.current) och stapelbilden har ingen platta, så att animationen syns
+   mellan dem. Texten står i stället i en mörk gloria; ljusspärren håller bilden mörk i snitt. */
 .run[data-mode='live'] .top,
-.run[data-mode='live'] .chart,
 .run[data-mode='live'] .beat,
 .run[data-mode='live'] .error:not(:empty),
 #app:has(> .run[data-mode='live']) > .leave-error {
@@ -739,8 +848,9 @@ h2,
   text-shadow: 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
 }
 
-.run[data-mode='live'] .chart {
-  border-radius: 1.5vh 1.5vh 0 0;
+/* Staplarna står direkt på animationen; skalans etiketter får samma mörka gloria som klockorna. */
+.run[data-mode='live'] .scale span {
+  text-shadow: 0 0 0.08em #000, 0 0 0.3em #000, 0 0 0.6em #000c;
 }
 
 /* Stapeln som pågår lyser och blinkar till i takt med musiken (klassen pulse sätts av run.ts).
@@ -772,6 +882,7 @@ h2,
 /* Signalerna ligger ovanpå skärmen med mörk botten, så att de går att läsa över text och staplar. */
 .run .banner,
 .run .countdown,
+.run .cheer,
 .run .pepword,
 .run .paused,
 .run .quit,
@@ -815,7 +926,8 @@ h2,
   font-size: calc(7 * var(--u));
 }
 
-/* Nedräkningen tonar ned hela skärmen i stället för att skära genom klockans siffror. */
+/* Nedräkningen står mitt på skärmen utan mörk bakgrund, så att animationen syns. Den glöder rött,
+   och klockorna under den tonas ned (klassen dimmed sätts av run.ts) så att siffrorna inte krockar. */
 .run .countdown {
   inset: 0;
   transform: none;
@@ -825,9 +937,63 @@ h2,
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  background: #000000d9;
+  background: none;
   font-size: calc(60 * var(--u));
   line-height: 1;
+  text-shadow: 0 0 0.02em #000, 0 0 0.08em #000, 0 0 0.25em var(--rod);
+}
+
+.run[data-mode='live'] .current,
+.run[data-mode='live'] .top {
+  transition: opacity 300ms ease-out;
+}
+
+.run.dimmed .current,
+.run.dimmed .top {
+  opacity: 0.2;
+}
+
+/* Ordet när ett hårt block är klart: stort, ovanför remsan för nästa block, och det poppar fram. */
+.run .cheer {
+  top: 22vh;
+  padding: 0;
+  background: none;
+  font-family: var(--display);
+  font-size: calc(15 * var(--u));
+  font-stretch: 78%;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text);
+  text-shadow: 0 0 0.03em #000, 0 0 0.1em #000, 0 0 0.3em var(--rod);
+  animation: cheer-pop 600ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+@keyframes cheer-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run .cheer {
+    animation: none;
+  }
+}
+
+/* Fyrverkeriet ligger mellan 3D-bilden och texten och tar inte emot musen. */
+.fireworks {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* Peppord och "Pausad" ligger över staplarna, så att klockorna och "Nästa:" syns. De visas aldrig samtidigt. */
@@ -920,6 +1086,56 @@ h2,
   gap: 1vh;
   font-size: 2.5vh;
   color: var(--muted);
+  box-sizing: border-box;
+  padding: 2vh 2vw;
+  border: 1px solid #ffffff2e;
+  border-radius: 1.5vh;
+  background: #170a0cb3;
+}
+
+/* Knappen är det man ska trycka på före start, så den är röd som Starta. */
+.run #mic-panel button {
+  border-color: var(--rod);
+  background: var(--rod);
+  font-weight: 800;
+}
+
+.run #mic-panel h2 {
+  margin: 0;
+  font-size: 3.4vh;
+  color: var(--text);
+}
+
+/* Överblicken: passets innehåll och startraden till vänster, mikrofonpanelen till höger. */
+.run .overview-row {
+  align-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 3vh 4vw;
+}
+
+.run .overview-left {
+  flex: 1 1 36vw;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+}
+
+.run .overview-right {
+  flex: 0 1 44vw;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vh;
+}
+
+.run .overview-left .split {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 2vh 2vw;
 }
 
 .run #mic-panel .row,

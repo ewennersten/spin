@@ -1,3 +1,6 @@
+import { position } from '../clock/clock'
+import { locate } from '../clock/lookup'
+import { clearRun, loadRun } from '../clock/runState'
 import { flatten, totalDuration } from '../model/flatten'
 import { mmss } from '../model/format'
 import type { Workout } from '../model/types'
@@ -68,12 +71,20 @@ export function libraryView(store: Store): View {
       svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
       renderChart(svg, segments)
 
-      const start = button('Starta', () => { location.hash = `#/run/${w.id}` })
+      // Ett pass som pågår (eller är pausat) har ett sparat läge. Starta fortsätter då där det var, och Stoppa rensar läget.
+      const nowMs = Date.now()
+      const saved = loadRun(store.kv, w, nowMs)
+      const posMs = saved ? position(saved, nowMs) : 0
+      const ongoing = saved !== null && !locate(segments, posMs).done
+      const start = button(ongoing ? 'Fortsätt' : 'Starta', () => { location.hash = `#/run/${w.id}` })
       start.disabled = segments.length === 0
       start.className = 'primary'
+      const stop = button('Stoppa', () => change(async () => clearRun(store.kv)))
+      stop.ariaLabel = `Stoppa ${w.name} så att det börjar om från början`
       const actions = el('div', { className: 'actions' })
       actions.append(
         start,
+        ...(ongoing ? [stop] : []),
         ...(segments.length ? [] : [el('span', { className: 'note', textContent: 'Passet är tomt' })]),
         button('Redigera', () => { location.hash = `#/edit/${w.id}` }),
         button('Duplicera', () => change(() => store.saveWorkout(copyOf(w)))),
@@ -81,7 +92,11 @@ export function libraryView(store: Store): View {
       )
       const info = el('div', { className: 'info' })
       info.append(el('span', { className: 'name', textContent: w.name }), el('span', { className: 'time', textContent: mmss(totalDuration(segments)) }))
-      const li = el('li', { className: 'workout' })
+      if (ongoing) {
+        const state = saved?.running ? 'Pågår' : 'Pausat'
+        info.append(el('span', { className: 'ongoing', textContent: `${state} vid ${mmss(Math.floor(posMs / 1000))}` }))
+      }
+      const li = el('li', { className: ongoing ? 'workout ongoing' : 'workout' })
       li.append(info, svg, actions)
       return li
     }
