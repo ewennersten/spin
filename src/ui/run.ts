@@ -1,8 +1,10 @@
+import { createStage } from '../anim/stage'
+import { SCENES } from '../anim/scenes'
 import { BeatDetector } from '../audio/beat'
 import { BeatSource, type MicReading } from '../audio/beatSource'
 import { openMic, type Mic } from '../audio/mic'
 import { IDLE, pause, position, seek, start, type ClockState } from '../clock/clock'
-import { locate, nextStartMs, prevStartMs } from '../clock/lookup'
+import { locate, nextStartMs, prevStartMs, type Located } from '../clock/lookup'
 import { clearRun, loadRun, saveRun } from '../clock/runState'
 import { flatten, totalDuration } from '../model/flatten'
 import { mmss, pctText } from '../model/format'
@@ -41,10 +43,17 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const total = totalDuration(segments)
   // ?fart=N ger en klocka som går N gånger fortare från att vyn öppnades. Den börjar om vid varje omladdning,
   // så i det läget sparas, laddas och rensas inget passläge.
-  const fart = Number(new URLSearchParams(location.search).get('fart'))
+  const params = new URLSearchParams(location.search)
+  const fart = Number(params.get('fart'))
   const fast = Number.isFinite(fart) && fart > 0
   const opened = Date.now()
   const now = fast ? () => opened + (Date.now() - opened) * fart : () => Date.now()
+  // 3D-bilden bakom skärmen, null utan WebGL. ?scen=N tvingar scen N (1 till antalet scener), ?ljus=1 visar mätrutan.
+  const scen = Number(params.get('scen'))
+  const forcedScene = Number.isInteger(scen) && scen >= 1 && scen <= SCENES.length ? scen - 1 : null
+  const stage = createStage({ forcedScene, lightMeter: params.get('ljus') === '1' })
+  stage?.setVisible(false) // syns bara under passet
+  let animOn = true
 
   let mode: 'overview' | 'live' | 'done' = 'overview'
   let clock: ClockState = IDLE
@@ -152,8 +161,12 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     frameId = requestAnimationFrame(frame)
     const t = now()
     main.classList.toggle('nocursor', t - movedAt > 3000)
-    if (mode === 'live') draw(t)
+    const at = mode === 'live' ? draw(t) : undefined
     sound()
+    // Efter draw, som kan ha avslutat passet.
+    const visible = mode === 'live' && animOn
+    stage?.setVisible(visible)
+    if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, beat: source.frame, nowMs: performance.now() })
   }
 
   // Ljudet räknas efter klockorna, och i verklig tid även med ?fart. Ett fel i mikrofonen ger intern takt.
@@ -168,7 +181,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
     beatDot.classList.toggle('ring', f.mode === 'intern')
-    put(beatMode, f.mode === 'mic' ? 'Mikrofon' : 'Intern takt')
+    put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !animOn ? ' · Animationer av' : ''))
   }
 
   // Ett nytt tryck på knappen öppnar mikrofonen på nytt, till exempel efter att den har kopplats ur.
@@ -192,11 +205,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       .catch(e => { status.textContent = `Känsligheten sparades inte: ${message(e)}` })
   }
 
-  function draw(t: number) {
+  function draw(t: number): Located | undefined {
     const pos = position(clock, t)
     const at = locate(segments, pos)
     const seg = at.segment
-    if (!seg) return finish()
+    if (!seg) { finish(); return }
     // Efter en dold flik, sömn eller ett hopp börjar tiden till nästa peppord om, så att inget spelas upp i efterhand.
     if (jumped(prevPos, pos)) { pepFrom = pos; pepUntil = 0 }
     prevPos = pos
@@ -238,10 +251,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     paused.hidden = run
     if (document.fullscreenElement) hint = false
     fullscreenHint.hidden = !hint
+    return at
   }
 
   function onKey(e: KeyboardEvent) {
-    // Kortkommandon som Cmd+R och Cmd+← är webbläsarens. A gör ingenting här.
+    // Kortkommandon som Cmd+R och Cmd+← är webbläsarens.
     if (e.ctrlKey || e.metaKey || e.altKey) return
     autoMic()
     // Mellanslag styr passet även från panelens reglage och talfält, men trycker på en knapp som har fokus.
@@ -285,6 +299,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     else if (key === 'q') { quitting = true; quit.hidden = false; return }
     else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
     else if (key === 'm') { source.enabled = !source.enabled; return }
+    else if (key === 'a') {
+      // Utan WebGL finns inga animationer att stänga av.
+      if (!stage) return
+      animOn = !animOn
+      store.saveAnimationsOn(animOn).catch(e => { status.textContent = `Valet för animationerna sparades inte: ${message(e)}` })
+      return
+    }
     else return
     persist()
   }
@@ -301,6 +322,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   wake()
 
   store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity }).catch(() => {})
+  store.getAnimationsOn().then(on => { animOn = on }).catch(() => {})
   // Även efter en omladdning mitt i passet, då panelen med knappen inte visas.
   Promise.resolve()
     .then(() => navigator.permissions.query({ name: 'microphone' }))
@@ -321,6 +343,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     document.removeEventListener('visibilitychange', onVisible)
     lock?.release().catch(() => {})
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
+    stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }
 }
 

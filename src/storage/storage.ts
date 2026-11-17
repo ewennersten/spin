@@ -15,11 +15,14 @@ export interface Store {
   savePepWords(words: string[]): Promise<void>
   getMicSettings(): Promise<MicSettings>
   saveMicSettings(s: MicSettings): Promise<void>
+  getAnimationsOn(): Promise<boolean>              // standard true
+  saveAnimationsOn(on: boolean): Promise<void>
 }
 
 const WORKOUTS = 'spinning.workouts.v1'
 const PEPWORDS = 'spinning.pepwords.v1'
 const MIC = 'spinning.mic.v1'
+const ANIM = 'spinning.anim.v1'
 const PEP_DEFAULT = ['Kom igen!', 'Håll i!', 'Starkt!', 'Tryck på!', 'Ni äger det här!', 'Snart där!', 'Ge allt!', 'Bra jobbat!']
 const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150 }
 
@@ -102,5 +105,7 @@ export function createStorage(kv: KV = window.localStorage): Store {
       return readSetting(MIC, { ...MIC_DEFAULT }, v => ['sensitivity', 'bassLoHz', 'bassHiHz'].every(k => Number.isFinite(v?.[k])))
     },
     async saveMicSettings(s) { kv.setItem(MIC, JSON.stringify(s)) },
+    async getAnimationsOn() { return readSetting(ANIM, true, v => typeof v === 'boolean') },
+    async saveAnimationsOn(on) { kv.setItem(ANIM, JSON.stringify(on)) },
   }
 }

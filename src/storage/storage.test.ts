@@ -51,6 +51,18 @@ it('har standardvärden för peppord och mikrofon', async () => {
   expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150 })
 })
 
+it('animationer är på från början, och valet sparas', async () => {
+  const s = createStorage(fakeKV())
+  expect(await s.getAnimationsOn()).toBe(true)
+  await s.saveAnimationsOn(false)
+  expect(await s.getAnimationsOn()).toBe(false)
+})
+it('ett trasigt värde för animationerna ger på', async () => {
+  for (const raw of ['{', '"av"', '0', 'null']) {
+    expect(await createStorage(fakeKV({ 'spinning.anim.v1': raw })).getAnimationsOn()).toBe(true)
+  }
+})
+
 it('exempelpassen är giltiga och har rätt längd', () => {
   expect(EXAMPLES.map(w => validateWorkout(w).ok)).toEqual([true, true, true])
   expect(EXAMPLES.map(w => totalDuration(flatten(w)))).toEqual([74 * 60, 70 * 60, 66 * 60])

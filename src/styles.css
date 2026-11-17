@@ -203,6 +203,8 @@ body {
 }
 
 .leave-error {
+  position: relative;
+  z-index: 1; /* över 3D-bilden (.stage) under passet */
   box-sizing: border-box;
   max-width: 1000px;
   margin: 16px auto 0;
@@ -257,6 +259,7 @@ body {
 .run {
   --u: min(1vh, 0.6vw);
   position: relative;
+  z-index: 1; /* över 3D-bilden (.stage) */
   flex: 1;
   min-height: 0;
   display: flex;
@@ -417,6 +420,25 @@ body {
 
 .run[data-mode='live'] .chart {
   height: 33vh;
+}
+
+/* Under passet ligger texten på mörka plattor, så att klockorna går att läsa framför 3D-bilden.
+   92 % täckning ger minst 7:1 även när det bakom är helvitt (se src/ui/contrast.ts). */
+.run[data-mode='live'] .top,
+.run[data-mode='live'] .current,
+.run[data-mode='live'] .chart,
+.run[data-mode='live'] .beat {
+  background: #0b0b0beb;
+  border-radius: 1.5vh;
+}
+
+.run[data-mode='live'] .top,
+.run[data-mode='live'] .current {
+  padding: 1vh 2vw;
+}
+
+.run[data-mode='live'] .chart {
+  border-radius: 1.5vh 1.5vh 0 0;
 }
 
 /* Signalerna ligger ovanpå skärmen med mörk botten, så att de går att läsa över text och staplar. */

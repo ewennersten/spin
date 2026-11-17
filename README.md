@@ -53,6 +53,7 @@ Ha laptopens lock öppet under hela passet. En MacBook stänger av mikrofonen n�
 | Pil vänster | Går tillbaka till början av blocket. Under blockets första tre sekunder: till föregående block. |
 | Pil upp, pil ned | Under passet: höjer eller sänker mikrofonens känslighet ett steg. Värdet sparas. |
 | F | Fullskärm av och på. |
+| A | Under passet: stänger av och sätter på animationerna. Valet sparas, till skillnad från M, och gäller även efter en omladdning och nästa pass. |
 | M | Under passet: växlar mellan mikrofonen och den interna takten. Mikrofonen är fortfarande öppen, så webbläsarens mikrofonsymbol lyser kvar. Valet sparas inte: efter en omladdning används mikrofonen igen. |
 | Q | I överblicken: tillbaka till biblioteket, som länken **Till biblioteket** (använd länken om du just har rört mikrofonpanelen). Under passet: avsluta passet. Enter avslutar, valfri annan tangent fortsätter. |
 
@@ -93,6 +94,19 @@ Samma meddelande visas om macOS inte tillåter webbläsaren att använda mikrofo
 
 Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällts ned eller en mikrofon har kopplats ur, går appen över till intern takt. Håll därför locket öppet under passet. Står det Intern takt fast musiken spelar: ladda om sidan. Klockan fortsätter där den var, och mikrofonen startar vid första tangenttryckningen.
 
+## Animationerna
+
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Klockorna och texterna ligger på mörka plattor, så att de går att läsa framför animationen. I överblicken och efter passet är bakgrunden mörk.
+
+Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**. Då står bara en stilla mörk bakgrund kvar, och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
+
+Saknar datorn stöd för 3D-grafik (WebGL), eller tappas den mitt i passet, fortsätter skärmen som vanligt utan animationer.
+
+För utveckling finns två lägen i adressen:
+
+- `?scen=N` visar bara scen N (från 1), till exempel `http://localhost:5173/?scen=1#/run/exempel-vo2max`.
+- `?ljus=1` visar en mätruta nere till vänster med bildens medelljus, största stigningen under 400 ms, bilder per sekund och kvalitetsnivå.
+
 ## Prova takten i salen
 
 Ta med det här till salen och bocka av:
@@ -103,3 +117,6 @@ Ta med det här till salen och bocka av:
 - [ ] Missar lampan slag: höj basbandets övre gräns, till exempel från 150 till 200 eller 250 Hz, och tryck Enter. Laptopens mikrofon hör ofta den djupaste basen dåligt.
 - [ ] Prova medan instruktören pratar. Blinkar lampan på rösten i stället för på trumman?
 - [ ] Anteckna vilken musik det fungerade med och vilken det inte fungerade med, och vilka värden för känslighet och basband som var bäst.
+- [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt.
+- [ ] Klockorna går att läsa från den bakersta cykeln medan animationen går.
+- [ ] A stänger av animationerna, och det står **Animationer av** nere till höger.
