@@ -23,8 +23,9 @@ export const tunnel: SceneFactory = () => {
     scene,
     camera,
     update(input) {
-      travel += (input.calm ? 3 : 6 + 30 * input.intensity) * input.dtSec
-      roll += (input.calm ? 0.05 : 0.1 + 0.9 * input.intensity) * input.dtSec
+      const m = input.calmMix
+      travel += THREE.MathUtils.lerp(6 + 30 * input.intensity, 3, m) * input.dtSec
+      roll += THREE.MathUtils.lerp(0.1 + 0.9 * input.intensity, 0.05, m) * input.dtSec
       camera.rotation.z = roll
       const spacing = DEPTH / count
       const twist = 0.08 + 0.25 * input.intensity
@@ -37,7 +38,7 @@ export const tunnel: SceneFactory = () => {
         rings.setMatrixAt(i, dummy.matrix)
       }
       rings.instanceMatrix.needsUpdate = true
-      const glow = (input.calm ? 0.2 : 0.3 + 0.2 * input.intensity) * (1 + 0.6 * input.pulse)
+      const glow = THREE.MathUtils.lerp(0.3 + 0.2 * input.intensity, 0.2, m) * (1 + 0.6 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },
     setParticles(fraction) {

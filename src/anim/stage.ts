@@ -118,6 +118,7 @@ export function createStage(options: StageOptions): Stage | null {
   let gain = 1
   let unmeasured = 0
   let intensity = 0
+  let calmMix = 1
   let visible = true
   let dead = false
   let disposed = false
@@ -188,6 +189,7 @@ export function createStage(options: StageOptions): Stage | null {
   }
 
   const step = (f: StageFrame) => {
+    const first = lastMs === null
     const dtMs = lastMs === null ? 0 : Math.max(0, f.nowMs - lastMs)
     lastMs = f.nowMs
     startMs ??= f.nowMs
@@ -199,6 +201,7 @@ export function createStage(options: StageOptions): Stage | null {
     }
     const p = pulse.value(f.nowMs)
     intensity = follow(intensity, calm ? 0 : intensityFor(f.pctNow), dtMs, 1500)
+    calmMix = first ? (calm ? 1 : 0) : follow(calmMix, calm ? 1 : 0, dtMs, 800)
     const levels = bands.update(f.beat, f.nowMs, dtMs)
     if (!visible) {
       governor.update(0, dtMs)
@@ -231,13 +234,14 @@ export function createStage(options: StageOptions): Stage | null {
       bands: levels,
       color: zone.color,
       calm,
+      calmMix,
       timeSec: (f.nowMs - startMs) / 1000,
       dtSec: Math.min(dtMs, 100) / 1000,
     })
     shake.randomDirection().multiplyScalar(shakeAmount(intensity) * 0.05 * p)
     camera.position.add(shake)
 
-    bloom.strength = (0.3 + 1.2 * intensity) * (calm ? 0.5 : 1)
+    bloom.strength = (0.3 + 1.2 * intensity) * (1 - 0.5 * calmMix)
     glitch.enabled = !calm && zone.name === 'VO2max'
     glitch.uniforms.uOffset.value = 0.002 + 0.006 * p
     glitch.uniforms.uBars.value = p > 0.6 ? 1 : 0

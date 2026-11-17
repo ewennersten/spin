@@ -6,39 +6,45 @@ const MAX_ROWS = 100 // punkter på djupet
 const HALF_WIDTH = 40
 const DEPTH = 100 // rutnätets längd; bortre kanten ligger i dimman
 const ROAD = 2.5 // halva bredden på den platta dalen mitt i
+const EYE = 2 // kamerans höjd
+const CEILING = 16 // takets höjd; bergen är högst 7,5, så golvets och takets berg möts aldrig
+const lerp = THREE.MathUtils.lerp
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
   return t * t * (3 - 2 * t)
 }
 
-// Berg av sinusåsar, 0 till 1. u är läget i landskapet, så bergen följer med när rutnätet rullar.
-const ridge = (x: number, u: number) =>
-  0.5 * Math.abs(Math.sin(0.31 * x + 0.23 * u))
-  + 0.3 * Math.abs(Math.sin(0.53 * x - 0.17 * u + 2.1))
-  + 0.2 * (0.5 + 0.5 * Math.sin(0.11 * x + 0.07 * u + 4))
+// Bergens form, 0 till 1: platt dal i mitten, berg längs sidorna av sinusåsar. u är läget i landskapet,
+// så bergen följer med när rutnätet rullar. Formen styr linjernas ljushet; ljudbanden gör det inte.
+const shape = (x: number, u: number) =>
+  smoothstep(ROAD, 9, Math.abs(x)) * (
+    0.5 * Math.abs(Math.sin(0.31 * x + 0.23 * u))
+    + 0.3 * Math.abs(Math.sin(0.53 * x - 0.17 * u + 2.1))
+    + 0.2 * (0.5 + 0.5 * Math.sin(0.11 * x + 0.07 * u + 4)))
 
-// Bergens höjd vid x: platt dal i mitten, basen formar de inre bergen, mellanregistret mitten och diskanten de yttersta.
-export function heightAt(x: number, u: number, bass: number, mid: number, treble: number, amp: number): number {
-  const ax = Math.abs(x)
-  const t = Math.min(1, ax / HALF_WIDTH)
-  const band = bass * (1 - t) ** 2 + mid * 2 * t * (1 - t) + treble * t * t
-  return smoothstep(ROAD, 12, ax) * ridge(x, u) * amp * (0.35 + 0.9 * band) * (0.5 + t)
+// Ljudbandens vikt vid x, 0,28 till 1: basen formar de inre bergen, mellanregistret mitten och diskanten de yttersta.
+const bandAt = (x: number, bass: number, mid: number, treble: number) => {
+  const t = Math.min(1, Math.abs(x) / HALF_WIDTH)
+  return (0.35 + 0.9 * (bass * (1 - t) ** 2 + mid * 2 * t * (1 - t) + treble * t * t)) / 1.25
 }
 
-// Ett lysande rutnät rullar mot kameran mellan berg som formas av ljudbanden.
+export function heightAt(x: number, u: number, bass: number, mid: number, treble: number, amp: number): number {
+  return shape(x, u) * bandAt(x, bass, mid, treble) * amp
+}
+
+// Ett lysande rutnät rullar mot kameran i en dal mellan berg som formas av ljudbanden, med samma nät speglat i taket.
 export const grid: SceneFactory = () => {
   const scene = new THREE.Scene()
-  scene.fog = new THREE.Fog(0x000000, 8, DEPTH - 5)
+  scene.fog = new THREE.Fog(0x000000, 10, DEPTH - 5)
   const camera = new THREE.PerspectiveCamera(70, 16 / 9, 0.1, 200)
-  camera.position.set(0, 2, 0)
+  camera.position.set(0, EYE, 0)
   const material = new THREE.LineBasicMaterial({ vertexColors: true })
   let geometry = new THREE.BufferGeometry()
   const lines = new THREE.LineSegments(geometry, material)
-  // Samma rutnät speglat i taket, så att himlen över horisonten inte står tom.
   const ceiling = new THREE.LineSegments(geometry, material)
   ceiling.scale.y = -1
-  ceiling.position.y = 2 * camera.position.y
+  ceiling.position.y = CEILING
   for (const l of [lines, ceiling]) {
     l.frustumCulled = false // höjderna ändras varje bildruta, så den beräknade gränsen stämmer aldrig
     scene.add(l)
@@ -50,8 +56,11 @@ export const grid: SceneFactory = () => {
   let sway = 0
 
   const build = (fraction: number) => {
-    cols = Math.max(25, Math.round(MAX_COLS * fraction))
-    rows = Math.max(30, Math.round(MAX_ROWS * fraction))
+    const c2 = Math.max(25, Math.round(MAX_COLS * fraction))
+    const r2 = Math.max(30, Math.round(MAX_ROWS * fraction))
+    if (c2 === cols && r2 === rows) return
+    cols = c2
+    rows = r2
     spacing = DEPTH / (rows - 1)
     const positions = new Float32Array(cols * rows * 3)
     for (let r = 0; r < rows; r++) {
@@ -84,14 +93,15 @@ export const grid: SceneFactory = () => {
     camera,
     update(input) {
       const { bass, mid, treble } = input.bands
-      travel += (input.calm ? 2 : 5 + 35 * input.intensity) * input.dtSec
-      sway += (input.calm ? 0.15 : 0.3 + 0.7 * input.intensity) * input.dtSec
-      camera.rotation.set(-0.08, 0, Math.sin(sway) * (input.calm ? 0.02 : 0.03 + 0.1 * input.intensity))
+      const m = input.calmMix
+      const i = input.intensity
+      travel += lerp(5 + 35 * i, 2, m) * input.dtSec
+      sway += lerp(0.3 + 0.7 * i, 0.15, m) * input.dtSec
+      camera.rotation.set(-0.08, 0, Math.sin(sway) * lerp(0.03 + 0.1 * i, 0.02, m))
       // Rutnätet flyttas bara en del av en ruta; hela rutor räknas in i landskapets läge u.
       const shift = Math.floor(travel / spacing)
       lines.position.z = ceiling.position.z = travel - shift * spacing
-      const amp = (input.calm ? 1.5 : 2 + 6 * input.intensity) * (1 + 0.25 * input.pulse)
-      const top = amp * 1.5 * 1.25 // högsta möjliga höjd, för ljusare toppar
+      const amp = lerp(3.5 + 3 * i, 2, m) * (1 + 0.15 * input.pulse) // högst 6,5 × 1,15 ≈ 7,5
       const pos = geometry.attributes.position as THREE.BufferAttribute
       const col = geometry.attributes.color as THREE.BufferAttribute
       const p = pos.array as Float32Array
@@ -99,15 +109,15 @@ export const grid: SceneFactory = () => {
       for (let r = 0; r < rows; r++) {
         const u = (r + shift) * spacing
         for (let c = 0; c < cols; c++) {
-          const i = (r * cols + c) * 3
-          const h = heightAt(p[i], u, bass, mid, treble, amp)
-          p[i + 1] = h
-          k[i] = k[i + 1] = k[i + 2] = 0.35 + 0.65 * Math.min(1, h / top)
+          const j = (r * cols + c) * 3
+          const s = shape(p[j], u)
+          p[j + 1] = s * bandAt(p[j], bass, mid, treble) * amp
+          k[j] = k[j + 1] = k[j + 2] = 0.5 + 0.5 * s
         }
       }
       pos.needsUpdate = true
       col.needsUpdate = true
-      const glow = (input.calm ? 0.18 : 0.35 + 0.35 * input.intensity) * (1 + 0.7 * input.pulse)
+      const glow = lerp(0.5 + 0.6 * i, 0.2, m) * (1 + 0.7 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },
     setParticles(fraction) {
