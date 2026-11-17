@@ -100,6 +100,17 @@ export function calmFor(pctNow: number, running: boolean): boolean {
   return !running || pctNow < 60
 }
 
+// Så högt att inget tak når ned till vilans glöd i någon scen (Svärmen behöver minst 2,85).
+export const NO_CAP = 3
+
+// Taket för lugnt läge: intensiteten samma procent har när passet går, så att en paus aldrig blir ljusare än passet.
+// Under 60 % är det lugnt även när passet går, och då gäller inget tak. Följer mjukt med tau 800 ms, som calmMix,
+// så att glöden inte rycker vid 60 %. current null (första bildrutan) sätter värdet direkt.
+export function calmCap(current: number | null, pctNow: number, dtMs: number): number {
+  const target = calmFor(pctNow, true) ? NO_CAP : intensityFor(pctNow)
+  return current === null ? target : follow(current, target, dtMs, 800)
+}
+
 export function edgeOpacity(pctNow: number, pulse: number): number {
   const k = clamp((pctNow - 95) / 25, 0, 1)
   return k * (0.4 + 0.6 * pulse)

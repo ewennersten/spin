@@ -110,7 +110,7 @@ export const swarm: SceneFactory = () => {
       const lit = (x: number) => 0.65 + 0.65 * x
       // Lugnt läge: dämpat men synligt i vila, och i en paus aldrig ljusare än samma procent när passet går
       // (i pausen syns dessutom färre partiklar än när passet går, uCut ovan).
-      const calmGlow = input.runIntensity === null ? 2.5 : Math.min(2.5, lit(input.runIntensity))
+      const calmGlow = Math.min(2.5, lit(input.runIntensity))
       uniforms.uGlow.value = lerp(lit(i), calmGlow, m) * (1 + 0.8 * input.pulse)
     },
     setParticles(fraction) {

@@ -40,7 +40,7 @@ export const tunnel: SceneFactory = () => {
       rings.instanceMatrix.needsUpdate = true
       const lit = (i: number) => 0.3 + 0.2 * i
       // Lugnt läge: dämpat men synligt i vila, och i en paus aldrig ljusare än samma procent när passet går.
-      const calmGlow = input.runIntensity === null ? 0.7 : Math.min(0.7, lit(input.runIntensity))
+      const calmGlow = Math.min(0.7, lit(input.runIntensity))
       const glow = THREE.MathUtils.lerp(lit(input.intensity), calmGlow, m) * (1 + 0.6 * input.pulse)
       material.color.set(input.color).multiplyScalar(glow)
     },

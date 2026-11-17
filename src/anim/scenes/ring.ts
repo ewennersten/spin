@@ -75,7 +75,7 @@ export const ring: SceneFactory = () => {
       bars.instanceMatrix.needsUpdate = true
       const lit = (x: number) => 0.2 + 0.25 * x
       // Lugnt läge: dämpat men synligt i vila, och i en paus aldrig ljusare än samma procent när passet går.
-      const calmGlow = input.runIntensity === null ? 0.4 : Math.min(0.4, lit(input.runIntensity))
+      const calmGlow = Math.min(0.4, lit(input.runIntensity))
       const glow = lerp(lit(i), calmGlow, m) * (1 + 0.6 * input.pulse)
       material.color.copy(base).multiplyScalar(glow)
     },

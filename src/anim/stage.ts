@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js'
 import type { BeatFrame } from '../audio/beatSource'
 import { zoneFor } from '../model/zones'
-import { BandLevels, BeatPulse, SceneDirector, calmFor, edgeOpacity, follow, intensityFor, shakeAmount } from './drive'
+import { BandLevels, BeatPulse, NO_CAP, SceneDirector, calmCap, calmFor, edgeOpacity, follow, intensityFor, shakeAmount } from './drive'
 import { LightGovernor } from './governor'
 import { QUALITY_LEVELS, QualityController } from './quality'
 import { SCENES } from './scenes'
@@ -119,6 +119,7 @@ export function createStage(options: StageOptions): Stage | null {
   let unmeasured = 0
   let intensity = 0
   let calmMix = 1
+  let cap = NO_CAP
   let edgeShown = 0
   let rgb = [0, 0, 0]
   let visible = true
@@ -204,6 +205,7 @@ export function createStage(options: StageOptions): Stage | null {
     const p = pulse.value(f.nowMs)
     intensity = follow(intensity, calm ? 0 : intensityFor(f.pctNow), dtMs, 1500)
     calmMix = first ? (calm ? 1 : 0) : follow(calmMix, calm ? 1 : 0, dtMs, 800)
+    cap = calmCap(first ? null : cap, f.pctNow, dtMs)
     const levels = bands.update(f.beat, f.nowMs, dtMs)
     // Zonfärgen tonas över i RGB i stället för att bytas på en bildruta. Talen hålls oavrundade, så att toningen inte fastnar.
     const target = [1, 3, 5].map(i => parseInt(zone.color.slice(i, i + 2), 16))
@@ -241,7 +243,7 @@ export function createStage(options: StageOptions): Stage | null {
       color,
       calm,
       calmMix,
-      runIntensity: calmFor(f.pctNow, true) ? null : intensityFor(f.pctNow),
+      runIntensity: cap,
       timeSec: (f.nowMs - startMs) / 1000,
       dtSec: Math.min(dtMs, 100) / 1000,
     })
