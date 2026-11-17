@@ -229,7 +229,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     frameId = requestAnimationFrame(frame)
     const t = now()
     main.classList.toggle('nocursor', t - movedAt > 3000)
-    main.classList.toggle('still', !animOn) // stänger av ljusskenet över staplarna (se styles.css)
+    // Staplarnas skanlinjer och glitch står still med animationerna avstängda eller ljusspärren på (se styles.css).
+    main.classList.toggle('still', !animOn)
+    main.classList.toggle('calm-light', lightSwitch.checked)
     if (mode === 'overview') {
       // Det sparade valet läses in efter att vyn har öppnats, så raden skrivs varje bildruta (put skriver bara ändringar).
       animLine.hidden = lightLine.hidden = !stage || stage.broken

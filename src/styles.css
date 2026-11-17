@@ -985,39 +985,110 @@ h2,
   text-shadow: 0 0 0.08em #000, 0 0 0.3em #000, 0 0 0.6em #000c;
 }
 
-/* Stapeln som pågår lyser och blinkar till i takt med musiken (klassen pulse sätts av run.ts).
-   Bara en stapel och en svag ljusning, så att det aldrig blir ett blink över skärmen. */
-.run .chart .now .glow {
-  opacity: 0.25;
-  transition: opacity 260ms ease-out;
+/* UV-neonstaplarna (se docs/ideer/staplar.md). Den röda och den cyana konturen ligger förskjutna en enhet åt var
+   sitt håll (en enhet i bilden är ungefär två bildpunkter). På slaget (klassen pulse, sätts av run.ts) glider de isär
+   på stapeln som pågår, och stapeln hoppar isär i vågräta remsor. Skanlinjerna rör sig uppåt på passkärmen. */
+.bar .slices,
+.scanlines {
+  display: none;
 }
 
-.run .chart.pulse .now .glow {
-  opacity: 0.6;
+.run .chart .scanlines {
+  display: inline;
+}
+
+.run .chart .scan {
+  animation: scan-up 1.2s linear infinite;
+}
+
+@keyframes scan-up {
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+.bar .edge-r {
+  transform: translateX(-0.8px);
+}
+
+.bar .edge-c {
+  transform: translateX(0.8px);
+}
+
+.run .chart .now .edge-r,
+.run .chart .now .edge-c {
+  transition: transform 260ms ease-out;
+}
+
+.run .chart.pulse .now .edge-r {
+  transform: translateX(-4px);
   transition-duration: 0ms; /* slaget syns direkt och klingar sedan av */
 }
 
-/* Ett snett ljussken sveper över glasstaplarna var 20:e sekund, på passkärmen. Svagt och långsamt, så att det
-   aldrig blir ett blink. A och minskade rörelser stänger av det. */
-.sweep {
-  transform: translateX(-200px);
+.run .chart.pulse .now .edge-c {
+  transform: translateX(4px);
+  transition-duration: 0ms;
 }
 
-.run .chart .sweep {
-  animation: sweep 20s ease-in-out infinite;
+.run .chart.pulse .now .body {
+  visibility: hidden;
 }
 
-.run.still .chart .sweep {
+.run .chart.pulse .now .slices {
+  display: inline;
+}
+
+.run .chart.pulse .now .slice:nth-child(1) { transform: translateX(10px); }
+.run .chart.pulse .now .slice:nth-child(2) { transform: translateX(-8px); }
+.run .chart.pulse .now .slice:nth-child(3) { transform: translateX(14px); }
+.run .chart.pulse .now .slice:nth-child(4) { transform: translateX(-12px); }
+.run .chart.pulse .now .slice:nth-child(5) { transform: translateX(6px); }
+
+/* Med ljusspärren (klassen calm-light), med animationerna avstängda (still) och med minskade rörelser står allt still. */
+.run.calm-light .chart .scan,
+.run.still .chart .scan {
   animation: none;
 }
 
-@keyframes sweep {
-  0% {
-    transform: translateX(-200px);
+.run.calm-light .chart.pulse .now .body,
+.run.still .chart.pulse .now .body {
+  visibility: visible;
+}
+
+.run.calm-light .chart.pulse .now .slices,
+.run.still .chart.pulse .now .slices {
+  display: none;
+}
+
+.run.calm-light .chart.pulse .now .edge-r,
+.run.still .chart.pulse .now .edge-r {
+  transform: translateX(-0.8px);
+}
+
+.run.calm-light .chart.pulse .now .edge-c,
+.run.still .chart.pulse .now .edge-c {
+  transform: translateX(0.8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run .chart .scan {
+    animation: none;
   }
-  15%,
-  100% {
-    transform: translateX(1300px);
+
+  .run .chart.pulse .now .body {
+    visibility: visible;
+  }
+
+  .run .chart.pulse .now .slices {
+    display: none;
+  }
+
+  .run .chart.pulse .now .edge-r {
+    transform: translateX(-0.8px);
+  }
+
+  .run .chart.pulse .now .edge-c {
+    transform: translateX(0.8px);
   }
 }
 
@@ -1029,15 +1100,6 @@ h2,
   filter: drop-shadow(0 0 1.6vh currentColor);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .run .chart.pulse .now .glow {
-    opacity: 0.25;
-  }
-
-  .run .chart .sweep {
-    animation: none;
-  }
-}
 
 /* Signalerna ligger ovanpå skärmen med mörk botten, så att de går att läsa över text och staplar. */
 .run .banner,

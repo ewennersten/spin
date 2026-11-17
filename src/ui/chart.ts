@@ -42,6 +42,7 @@ const NS = 'http://www.w3.org/2000/svg'
 const W = 1000
 const H = 200
 const FLOOR = 44 // spegelgolvet under staplarna
+const SLICES = 5 // glitchremsor i stapeln som pågår
 // Flera bilder kan finnas på samma sida, så varje bild får egna id:n på övertoningarna.
 let nextChartId = 0
 
@@ -81,24 +82,20 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
     return `url(#${id(name)})`
   }
   const DOWN = { x1: 0, y1: 0, x2: 0, y2: 1 }
-  // Frostat glas: färgen är svag upptill och full nere vid golvet, där ljuset sitter.
-  const frost = el('mask', { id: id('frost'), maskContentUnits: 'objectBoundingBox' })
-  frost.append(el('rect', { width: 1, height: 1, fill: grad('frost-fill', DOWN, [[0, '#ffffff', 0.5], [0.6, '#ffffff', 0.8], [1, '#ffffff', 1]]) }))
-  defs.append(frost)
-  // Ljuset nere vid golvet och ljuset som slår i takt har zonens ljusa färg och inte vitt, så att stapeln behåller
-  // sin färg. En övertoning per zon.
-  const lights = new Map<string, { floor: string; beat: string }>()
-  const lightsFor = (hex: string) => {
-    let l = lights.get(hex)
-    if (!l) {
-      l = {
-        floor: grad(`floor-${hex.slice(1)}`, DOWN, [[0.45, hex, 0], [1, hex, 0.45]]),
-        beat: grad(`beat-${hex.slice(1)}`, DOWN, [[0.3, hex, 0], [1, hex, 1]]),
-      }
-      lights.set(hex, l)
-    }
-    return l
+  // UV-neon (se docs/ideer/staplar.md): färgen lyser starkast upptill och mörknar mot vinrött nere vid golvet,
+  // som färg i UV-ljus på en mörk klubbvägg.
+  const uvShade = grad('uv-shade', DOWN, [[0, '#2a0614', 0], [0.35, '#2a0614', 0.15], [1, '#2a0614', 0.9]])
+  // Glitchremsor: stapeln som pågår delas i vågräta remsor som hoppar isär på slaget (se styles.css).
+  for (let k = 0; k < SLICES; k++) {
+    const band = el('clipPath', { id: id(`slice-${k}`) })
+    band.append(el('rect', { x: -50, y: (k * H) / SLICES, width: W + 100, height: H / SLICES }))
+    defs.append(band)
   }
+  // Skanlinjer: tunna vita linjer var sjätte enhet, som rör sig uppåt inne i staplarna på passkärmen.
+  const scanId = id('scan')
+  const scanPattern = el('pattern', { id: scanId, patternUnits: 'userSpaceOnUse', width: W, height: 6 })
+  scanPattern.append(el('rect', { x: 0, y: 0, width: W, height: 1.5, fill: '#ffffff', 'fill-opacity': 0.18 }))
+  defs.append(scanPattern)
   // Spegelgolvet: staplarna speglas suddigt och tonar bort nedåt.
   const blur = el('filter', { id: id('blur') })
   blur.append(el('feGaussianBlur', { stdDeviation: 4 }))
@@ -121,31 +118,37 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       // Utan x1/x2 går en linearGradient vågrätt över formens bredd.
       fill = grad(`${i}`, {}, [[0, shape.fromColor, 1], [1, shape.toColor, 1]])
     }
-    // Stapelns övre kant (andra och tredje hörnet) får en ljus linje i zonens ljusa färg. Glow är ljuset nere vid
-    // golvet som slår i takt på stapeln som pågår (se styles.css).
+    // Stapelns övre kant (andra och tredje hörnet) får en vit linje. Konturen ritas två gånger, i rött och cyan,
+    // förskjutna åt var sitt håll som på en glitchad skärm; på slaget glider de isär (se styles.css).
     const [, from, to] = shape.points.split(' ')
-    const edge = zoneFor(segments[i].toPct).textColor
-    const light = lightsFor(edge)
+    const fillOf = () => [el('polygon', { points: shape.points, fill, 'fill-opacity': 0.92 }), el('polygon', { points: shape.points, fill: uvShade })]
+    const body = el('g', { class: 'body' })
+    body.append(...fillOf())
+    const slices = el('g', { class: 'slices' })
+    for (let k = 0; k < SLICES; k++) {
+      const slice = el('g', { class: 'slice', 'clip-path': `url(#${id(`slice-${k}`)})` })
+      slice.append(...fillOf())
+      slices.append(slice)
+    }
+    const outline = (stroke: string, cls: string) =>
+      el('polygon', { points: shape.points, fill: 'none', stroke, 'stroke-opacity': 0.8, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke', class: cls })
     // color ger glöden zonens färg, --i ordningen när staplarna växer fram i biblioteket.
     const bar = el('g', { class: 'bar', color: shape.toColor, style: `--i: ${i}` })
     bar.append(
-      el('polygon', { points: shape.points, fill, mask: `url(#${id('frost')})` }),
-      el('polygon', { points: shape.points, fill: light.floor }),
-      el('polygon', { points: shape.points, fill: light.beat, opacity: 0, class: 'glow' }),
-      el('polygon', { points: shape.points, fill: 'none', stroke: edge, 'stroke-opacity': 0.5, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
-      el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: edge, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
+      body,
+      slices,
+      outline('#ff2050', 'edge-r'),
+      outline('#20d8ff', 'edge-c'),
+      el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: '#ffffff', 'stroke-opacity': 0.9, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
     )
     svg.append(bar)
     mirror.append(el('polygon', { points: mirrored, fill, class: 'bar-reflection', style: `--i: ${i}` }))
     return bar
   })
 
-  // Ett snett ljussken sveper över glaset då och då (se styles.css).
-  const sweep = el('g', { 'clip-path': `url(#${clipId})` })
-  const skew = el('g', { transform: 'skewX(-22)' })
-  skew.append(el('rect', { class: 'sweep', x: 0, y: 0, width: 70, height: H + floor, fill: grad('sweep', { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, '#ffffff', 0], [0.5, '#ffffff', 0.22], [1, '#ffffff', 0]]) }))
-  sweep.append(skew)
-  svg.append(sweep)
+  const scan = el('g', { class: 'scanlines', 'clip-path': `url(#${clipId})` })
+  scan.append(el('rect', { class: 'scan', x: 0, y: -6, width: W, height: H + 12, fill: `url(#${scanId})` }))
+  svg.append(scan)
 
   if (scale) {
     const top = scaleTop(segments)
