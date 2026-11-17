@@ -15,7 +15,8 @@ import type { Scene } from './scenes/scene'
 
 export interface StageFrame { pctNow: number; running: boolean; blockIndex: number; beat: BeatFrame; nowMs: number }
 export interface StageOptions { forcedScene: number | null; lightMeter: boolean }
-export interface Stage { frame(f: StageFrame): void; setVisible(on: boolean): void; dispose(): void }
+// broken: scenen har dolts för resten av vyn (tappad kontext, omätt ljus eller ett fel i frame).
+export interface Stage { readonly broken: boolean; frame(f: StageFrame): void; setVisible(on: boolean): void; dispose(): void }
 
 const FADE_MS = 600
 const METER_W = 16
@@ -306,6 +307,7 @@ export function createStage(options: StageOptions): Stage | null {
   canvas.addEventListener('webglcontextlost', onLost)
 
   return {
+    get broken() { return dead },
     frame(f) {
       if (dead) return
       try {

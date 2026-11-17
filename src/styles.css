@@ -427,13 +427,17 @@ body {
 .run[data-mode='live'] .top,
 .run[data-mode='live'] .current,
 .run[data-mode='live'] .chart,
-.run[data-mode='live'] .beat {
+.run[data-mode='live'] .beat,
+.run[data-mode='live'] .error:not(:empty),
+#app:has(> .run[data-mode='live']) > .leave-error {
   background: #0b0b0beb;
   border-radius: 1.5vh;
 }
 
 .run[data-mode='live'] .top,
-.run[data-mode='live'] .current {
+.run[data-mode='live'] .current,
+.run[data-mode='live'] .error:not(:empty),
+#app:has(> .run[data-mode='live']) > .leave-error {
   padding: 1vh 2vw;
 }
 

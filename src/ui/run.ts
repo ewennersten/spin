@@ -53,6 +53,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const forcedScene = Number.isInteger(scen) && scen >= 1 && scen <= SCENES.length ? scen - 1 : null
   const stage = createStage({ forcedScene, lightMeter: params.get('ljus') === '1' })
   stage?.setVisible(false) // syns bara under passet
+  let stageShown = false
   let animOn = true
 
   let mode: 'overview' | 'live' | 'done' = 'overview'
@@ -165,7 +166,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     sound()
     // Efter draw, som kan ha avslutat passet.
     const visible = mode === 'live' && animOn
-    stage?.setVisible(visible)
+    if (visible !== stageShown) stage?.setVisible(stageShown = visible)
     if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, beat: source.frame, nowMs: performance.now() })
   }
 
@@ -181,7 +182,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
     beatDot.classList.toggle('ring', f.mode === 'intern')
-    put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !animOn ? ' · Animationer av' : ''))
+    put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
   }
 
   // Ett nytt tryck på knappen öppnar mikrofonen på nytt, till exempel efter att den har kopplats ur.
@@ -300,8 +301,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
     else if (key === 'm') { source.enabled = !source.enabled; return }
     else if (key === 'a') {
-      // Utan WebGL finns inga animationer att stänga av.
-      if (!stage) return
+      // Utan WebGL, eller när scenen har slutat fungera, finns inga animationer att stänga av.
+      if (!stage || stage.broken) return
       animOn = !animOn
       store.saveAnimationsOn(animOn).catch(e => { status.textContent = `Valet för animationerna sparades inte: ${message(e)}` })
       return
