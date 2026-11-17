@@ -51,7 +51,8 @@ export class BandLevels {
     for (const k of KEYS) {
       if (frame.mode === 'mic') {
         const x = frame[k]
-        this.#peak[k] = Math.max(x, this.#peak[k] * Math.exp(-dtMs / PEAK_MS), PEAK_MIN)
+        // Glappet räknas som högst 100 ms, så att musiken inte läses nära full nivå efter en dold flik.
+        this.#peak[k] = Math.max(x, this.#peak[k] * Math.exp(-Math.min(dtMs, 100) / PEAK_MS), PEAK_MIN)
         target[k] = Math.min(1, x / this.#peak[k])
       } else {
         target[k] = 0.45 + 0.3 * Math.sin((2 * Math.PI * nowMs) / INTERN_PERIOD_MS[k])

@@ -44,6 +44,17 @@ it('ljudbanden: jämn nivå från mikrofonen närmar sig 1 och ett plötsligt ho
   const next = quiet.update(mic(0.05), 3016, 16).bass
   expect(next - prev).toBeLessThanOrEqual(1 - Math.exp(-16 / 150) + 1e-9) // tidskonstant 150 ms
 })
+it('ljudbanden: efter en dold flik stiger nivån inte mer än ett vanligt steg', () => {
+  const mic = (bass: number) => ({ level: 0.1, bass, mid: bass, treble: bass, beat: false, mode: 'mic' as const })
+  // Toppen sätts av en hög nivå, sedan jämn lägre nivå. Ett glapp på 10 s ska ge samma steg som 100 ms.
+  const run = (gapMs: number) => {
+    const b = new BandLevels()
+    b.update(mic(0.05), 0, 16)
+    for (let t = 16; t < 1000; t += 16) b.update(mic(0.01), t, 16)
+    return b.update(mic(0.01), 1000 + gapMs, gapMs).bass
+  }
+  expect(run(10000)).toBeCloseTo(run(100), 9)
+})
 it('ljudbanden: tystnad ger inga NaN, och den interna takten ger lugna värden mellan 0 och 1', () => {
   const b = new BandLevels()
   const zero = { level: 0, bass: 0, mid: 0, treble: 0, beat: false, mode: 'mic' as const }
