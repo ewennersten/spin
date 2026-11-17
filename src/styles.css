@@ -46,8 +46,11 @@ body {
   gap: 8px;
 }
 
-.status:empty {
-  display: none;
+/* En tom statusrad finns kvar, så att skärmläsare läser upp texten som sätts i den, och tar en rads höjd,
+   så att sidan inte hoppar. Ett långt ord i ett felmeddelande bryts i stället för att göra sidan bredare. */
+.status {
+  min-height: 1lh;
+  overflow-wrap: anywhere;
 }
 
 .workouts {
