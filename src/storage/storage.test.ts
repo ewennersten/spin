@@ -48,7 +48,7 @@ it('avvisar ogiltiga filer utan att lägga till något', async () => {
 it('har standardvärden för peppord och mikrofon', async () => {
   const s = createStorage(fakeKV())
   expect(await s.getPepWords()).toHaveLength(8)
-  expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150 })
+  expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 })
 })
 
 it('animationer är på från början, och valet sparas', async () => {
@@ -106,10 +106,12 @@ it('sparar och läser peppord och mikrofon, och faller tillbaka på standard vid
   const s = createStorage(kv)
   await s.savePepWords([])
   expect(await s.getPepWords()).toEqual([])
-  await s.saveMicSettings({ sensitivity: 8, bassLoHz: 50, bassHiHz: 120 })
-  expect(await s.getMicSettings()).toEqual({ sensitivity: 8, bassLoHz: 50, bassHiHz: 120 })
+  await s.saveMicSettings({ sensitivity: 8, bassLoHz: 50, bassHiHz: 120, leadMs: 60 })
+  expect(await s.getMicSettings()).toEqual({ sensitivity: 8, bassLoHz: 50, bassHiHz: 120, leadMs: 60 })
+  kv.data.set('spinning.mic.v1', '{"sensitivity": 7, "bassLoHz": 40, "bassHiHz": 150}') // sparat före synkreglaget
+  expect(await s.getMicSettings()).toEqual({ sensitivity: 7, bassLoHz: 40, bassHiHz: 150, leadMs: 120 })
   kv.data.set('spinning.pepwords.v1', '{')
   kv.data.set('spinning.mic.v1', '{"sensitivity": "hög"}')
   expect(await s.getPepWords()).toHaveLength(8)
-  expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150 })
+  expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 })
 })

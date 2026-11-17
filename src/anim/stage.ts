@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js'
 import type { BeatFrame } from '../audio/beatSource'
 import { zoneFor } from '../model/zones'
-import { BandLevels, BeatPulse, NO_CAP, SceneDirector, calmCap, calmFor, edgeOpacity, follow, intensityFor, shakeAmount } from './drive'
+import { BandLevels, BeatPulse, NO_CAP, SceneDirector, calmCap, calmFor, follow, intensityFor, shakeAmount } from './drive'
 import { LightGovernor } from './governor'
 import { QUALITY_LEVELS, QualityController } from './quality'
 import { SCENES } from './scenes'
@@ -98,11 +98,9 @@ export function createStage(options: StageOptions): Stage | null {
   const root = document.createElement('div')
   root.className = 'stage'
   root.append(canvas)
-  const edge = document.createElement('div')
-  edge.className = 'edge'
   const meterEl = options.lightMeter ? document.createElement('div') : null
   if (meterEl) meterEl.className = 'light-meter'
-  document.body.append(root, edge, ...(meterEl ? [meterEl] : []))
+  document.body.append(root, ...(meterEl ? [meterEl] : []))
 
   const forced = options.forcedScene !== null && options.forcedScene >= 0 && options.forcedScene < SCENES.length ? options.forcedScene : null
   const director = new SceneDirector(SCENES.length, Math.random, forced)
@@ -120,7 +118,6 @@ export function createStage(options: StageOptions): Stage | null {
   let intensity = 0
   let calmMix = 1
   let cap = NO_CAP
-  let edgeShown = 0
   let rgb = [0, 0, 0]
   let visible = true
   let dead = false
@@ -156,7 +153,6 @@ export function createStage(options: StageOptions): Stage | null {
 
   const show = (on: boolean) => {
     root.hidden = !on
-    edge.hidden = !on
     if (meterEl) meterEl.hidden = !on
   }
 
@@ -298,11 +294,6 @@ export function createStage(options: StageOptions): Stage | null {
     quad.render(renderer)
     if (meterEl && ok) record(f.nowMs, measured * scale)
 
-    // Lugn i vila och paus, följer bildens toning, och tänds mjukt (tau 150 ms, kortare än pulsens 250 ms).
-    edgeShown = follow(edgeShown, edgeOpacity(f.pctNow, p) * (1 - calmMix) * fade, dtMs, 150)
-    edge.style.opacity = String(edgeShown)
-    edge.style.color = color
-
     if (meterEl) {
       meterFrames++
       if (f.nowMs - meterAt >= 250) {
@@ -343,10 +334,6 @@ export function createStage(options: StageOptions): Stage | null {
       }
       visible = on
       show(on && !dead)
-      if (!on) {
-        edgeShown = 0
-        edge.style.opacity = '0'
-      }
     },
     dispose() {
       if (disposed) return
@@ -355,7 +342,6 @@ export function createStage(options: StageOptions): Stage | null {
       removeEventListener('resize', applySize)
       canvas.removeEventListener('webglcontextlost', onLost)
       root.remove()
-      edge.remove()
       meterEl?.remove()
       try {
         current?.dispose()

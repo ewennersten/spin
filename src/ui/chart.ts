@@ -35,6 +35,7 @@ export function chartShapes(segments: Segment[], width: number, height: number):
 const NS = 'http://www.w3.org/2000/svg'
 const W = 1000
 const H = 200
+const FLOOR = 44 // spegelgolvet under staplarna
 // Flera bilder kan finnas på samma sida, så varje bild får egna id:n på övertoningarna.
 let nextChartId = 0
 
@@ -58,49 +59,72 @@ export function chartFrame(svg: SVGSVGElement): { frame: HTMLElement; scale: HTM
 // Med scale ritas linjer var 25:e procent i bilden och etiketterna i scale, som står bredvid bilden (se chartFrame).
 export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement): Chart {
   svg.replaceChildren()
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`)
+  svg.setAttribute('viewBox', `0 0 ${W} ${H + FLOOR}`)
   svg.setAttribute('preserveAspectRatio', 'none')
 
   const chartId = nextChartId++
+  const id = (name: string) => `chart-${chartId}-${name}`
   const defs = el('defs', {})
   svg.append(defs)
-  // Glans överst och skugga nederst, lagd över varje stapel, så att staplarna får djup.
-  const shadeId = `chart-${chartId}-shade`
-  const shade = el('linearGradient', { id: shadeId, x1: 0, y1: 0, x2: 0, y2: 1 })
-  shade.append(
-    el('stop', { offset: 0, 'stop-color': '#ffffff', 'stop-opacity': 0.38 }),
-    el('stop', { offset: 0.14, 'stop-color': '#ffffff', 'stop-opacity': 0.1 }),
-    el('stop', { offset: 0.5, 'stop-color': '#ffffff', 'stop-opacity': 0 }),
-    el('stop', { offset: 1, 'stop-color': '#000000', 'stop-opacity': 0.5 }),
-  )
-  defs.append(shade)
-  // Det avklarade mörknar bara på staplarna, så att bakgrunden bakom bilden (under passet animationen) syns orörd.
-  const clipId = `chart-${chartId}-bars`
+  const grad = (name: string, attrs: Record<string, number>, stops: [number, string, number][]) => {
+    const g = el('linearGradient', { id: id(name), ...attrs })
+    for (const [offset, color, opacity] of stops) g.append(el('stop', { offset, 'stop-color': color, 'stop-opacity': opacity }))
+    defs.append(g)
+    return `url(#${id(name)})`
+  }
+  const DOWN = { x1: 0, y1: 0, x2: 0, y2: 1 }
+  // Frostat glas: färgen är svag upptill och full nere vid golvet, där ljuset sitter.
+  const frost = el('mask', { id: id('frost'), maskContentUnits: 'objectBoundingBox' })
+  frost.append(el('rect', { width: 1, height: 1, fill: grad('frost-fill', DOWN, [[0, '#ffffff', 0.5], [0.6, '#ffffff', 0.8], [1, '#ffffff', 1]]) }))
+  defs.append(frost)
+  const floorLight = grad('floor-light', DOWN, [[0.45, '#ffffff', 0], [1, '#ffffff', 0.35]])
+  const beatLight = grad('beat-light', DOWN, [[0.3, '#ffffff', 0], [1, '#ffffff', 1]])
+  // Spegelgolvet: staplarna speglas suddigt och tonar bort nedåt.
+  const blur = el('filter', { id: id('blur') })
+  blur.append(el('feGaussianBlur', { stdDeviation: 4 }))
+  const fade = el('mask', { id: id('fade') })
+  fade.append(el('rect', { x: 0, y: H, width: W, height: FLOOR, fill: grad('fade-fill', DOWN, [[0, '#ffffff', 0.8], [1, '#ffffff', 0]]) }))
+  defs.append(blur, fade)
+  const reflection = el('g', { mask: `url(#${id('fade')})` })
+  const mirror = el('g', { filter: `url(#${id('blur')})` })
+  reflection.append(mirror)
+  svg.append(reflection, el('line', { x1: 0, y1: H, x2: W, y2: H, stroke: '#ffffff', 'stroke-opacity': 0.3, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
+  // Det avklarade mörknar bara på staplarna och speglingen, så att bakgrunden bakom bilden (under passet animationen) syns orörd.
+  const clipId = id('bars')
   const clip = el('clipPath', { id: clipId })
   defs.append(clip)
   const bars = chartShapes(segments, W, H).map((shape, i) => {
-    clip.append(el('polygon', { points: shape.points }))
+    const mirrored = shape.points.split(' ').map(p => { const [x, y] = p.split(','); return `${x},${2 * H - Number(y)}` }).join(' ')
+    clip.append(el('polygon', { points: shape.points }), el('polygon', { points: mirrored }))
     let fill = shape.fromColor
     if (shape.toColor !== shape.fromColor) {
-      const id = `chart-${chartId}-${i}`
       // Utan x1/x2 går en linearGradient vågrätt över formens bredd.
-      const grad = el('linearGradient', { id })
-      grad.append(el('stop', { offset: 0, 'stop-color': shape.fromColor }), el('stop', { offset: 1, 'stop-color': shape.toColor }))
-      defs.append(grad)
-      fill = `url(#${id})`
+      fill = grad(`${i}`, {}, [[0, shape.fromColor, 1], [1, shape.toColor, 1]])
     }
-    // Stapelns övre kant (andra och tredje hörnet) får en ljus linje. Glow syns bara på stapeln som pågår (se styles.css).
+    // Stapelns övre kant (andra och tredje hörnet) får en ljus linje i zonens ljusa färg. Glow är ljuset nere vid
+    // golvet som slår i takt på stapeln som pågår (se styles.css).
     const [, from, to] = shape.points.split(' ')
-    const bar = el('g', { class: 'bar', color: shape.toColor }) // color ger glöden zonens färg
+    const edge = zoneFor(segments[i].toPct).textColor
+    // color ger glöden zonens färg, --i ordningen när staplarna växer fram i biblioteket.
+    const bar = el('g', { class: 'bar', color: shape.toColor, style: `--i: ${i}` })
     bar.append(
-      el('polygon', { points: shape.points, fill }),
-      el('polygon', { points: shape.points, fill: `url(#${shadeId})` }),
-      el('polygon', { points: shape.points, fill: '#ffffff', opacity: 0, class: 'glow' }),
-      el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: '#ffffff', 'stroke-opacity': 0.7, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
+      el('polygon', { points: shape.points, fill, mask: `url(#${id('frost')})` }),
+      el('polygon', { points: shape.points, fill: floorLight }),
+      el('polygon', { points: shape.points, fill: beatLight, opacity: 0, class: 'glow' }),
+      el('polygon', { points: shape.points, fill: 'none', stroke: edge, 'stroke-opacity': 0.5, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }),
+      el('polyline', { points: `${from} ${to}`, fill: 'none', stroke: edge, 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }),
     )
     svg.append(bar)
+    mirror.append(el('polygon', { points: mirrored, fill, class: 'bar-reflection', style: `--i: ${i}` }))
     return bar
   })
+
+  // Ett snett ljussken sveper över glaset då och då (se styles.css).
+  const sweep = el('g', { 'clip-path': `url(#${clipId})` })
+  const skew = el('g', { transform: 'skewX(-22)' })
+  skew.append(el('rect', { class: 'sweep', x: 0, y: 0, width: 70, height: H + FLOOR, fill: grad('sweep', { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, '#ffffff', 0], [0.5, '#ffffff', 0.22], [1, '#ffffff', 0]]) }))
+  sweep.append(skew)
+  svg.append(sweep)
 
   if (scale) {
     const top = scaleTop(segments)
@@ -111,13 +135,13 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#fff6f4', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
       const label = document.createElement('span')
       label.textContent = `${t} %`
-      label.style.top = `${y / H * 100}%`
+      label.style.top = `${y / (H + FLOOR) * 100}%`
       if (t === 100) label.className = 'ftp'
       return label
     }))
   }
 
-  const dim = el('rect', { x: 0, y: 0, width: 0, height: H, fill: '#000000', opacity: 0.6, display: 'none', 'clip-path': `url(#${clipId})` })
+  const dim = el('rect', { x: 0, y: 0, width: 0, height: H + FLOOR, fill: '#000000', opacity: 0.6, display: 'none', 'clip-path': `url(#${clipId})` })
   const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#fff6f4', 'stroke-width': 4, display: 'none' })
   svg.append(dim, line)
 

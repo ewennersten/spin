@@ -1,12 +1,20 @@
+import aubio from 'aubiojs'
 import type { MicSettings } from '../model/types'
 import { bandLevel } from './bands'
 import type { MicReading } from './beatSource'
 
-// label är vad skärmen kallar källan: Mikrofon eller Datorns ljud.
-export interface Mic { label: string; read(): MicReading; setBassBand(loHz: number, hiHz: number): void; close(): void }
+// label är vad skärmen kallar källan: Mikrofon eller Datorns ljud. lost blir sant när källan har tappats,
+// till exempel när mikrofonen kopplas ur eller någon klickar Sluta dela.
+export interface Mic { label: string; readonly lost: boolean; read(): MicReading; setBassBand(loHz: number, hiHz: number): void; close(): void }
 
 // Ekosläckning, brusreducering och automatisk nivå filtrerar bort basen.
 const RAW = { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+const BASS_WEIGHT = 2
+// aubio (öppen källkod, GPL) följer takten och förutser själv slagen. Laddas en gång. Går det inte används appens egen
+// slagdetektor (BeatDetector) i stället.
+const HOP = 256 // 5 ms vid 48 kHz
+const tempoLib = aubio().catch(() => null)
+const BANDS = [[150, 400], [400, 1000], [1000, 2500], [2500, 5000], [5000, 8000]]
 
 // Nekad åtkomst eller en saknad mikrofon kastar, och anroparen fortsätter utan mikrofon.
 export async function openMic(settings: MicSettings): Promise<Mic> {
@@ -36,12 +44,15 @@ function listen(stream: MediaStream, settings: MicSettings, label: string): Mic 
   const stop = () => stream.getTracks().forEach(t => t.stop())
   let ctx: AudioContext
   let analyser: AnalyserNode
+  let source: MediaStreamAudioSourceNode
   try {
     ctx = new AudioContext()
     // Öppnas mikrofonen av sig själv efter en omladdning kan kontexten starta pausad, och då blir analysen tyst.
     ctx.resume().catch(() => {})
-    analyser = new AnalyserNode(ctx, { fftSize: 2048, smoothingTimeConstant: 0.5 })
-    ctx.createMediaStreamSource(stream).connect(analyser)
+    // Ingen utjämning: den fördröjer slaget. Animationen jämnar själv ut banden (BandLevels).
+    analyser = new AnalyserNode(ctx, { fftSize: 2048, smoothingTimeConstant: 0 })
+    source = ctx.createMediaStreamSource(stream)
+    source.connect(analyser)
   } catch (e) {
     stop() // annars lyser webbläsarens mikrofonsymbol kvar
     throw e
@@ -49,24 +60,52 @@ function listen(stream: MediaStream, settings: MicSettings, label: string): Mic 
   const time = new Float32Array(analyser.fftSize)
   const db = new Float32Array(analyser.frequencyBinCount)
   const band = (lo: number, hi: number) => bandLevel(db, ctx.sampleRate, analyser.fftSize, lo, hi)
+  // Hur mycket ljudet ökade sedan förra läsningen, i basbandet och fem band upp till 8 kHz. Basen väger dubbelt, men även
+  // virvel och hi-hat ger slag, så att takten hörs i låtar med svag bas. Hela band och inte enskilda frekvenser, så att
+  // bruset i ett slags svans inte ser ut som nya slag.
+  let prev: number[] = []
+  const onset = () => {
+    const now = [band(bassLo, bassHi), ...BANDS.map(([lo, hi]) => band(lo, hi))]
+    const sum = now.reduce((s, v, i) => s + Math.max(0, v - (prev[i] ?? v)) * (i === 0 ? BASS_WEIGHT : 1), 0)
+    prev = now
+    return sum
+  }
   let bassLo = settings.bassLoHz
   let bassHi = settings.bassHiHz
   // En urkopplad mikrofon avslutar spåret. Då ger read() tystnad, och BeatSource går över till intern takt.
   let ended = false
   stream.getAudioTracks().forEach(t => t.addEventListener('ended', () => { ended = true }))
+  // aubio får ljudet i bitar om 5 ms och säger när ett slag inträffar. Slagen samlas tills read() hämtar dem.
+  // shortcut: ScriptProcessorNode körs på huvudtråden och kan dröja en bildruta när 3D-bilden är tung; byt till
+  // AudioWorklet om slagen blir ryckiga.
+  let beats: number[] | undefined
+  let processor: ScriptProcessorNode | null = null
+  let closed = false
+  void tempoLib.then(lib => {
+    if (!lib || closed) return
+    const tempo = new lib.Tempo(1024, HOP, ctx.sampleRate)
+    processor = ctx.createScriptProcessor(HOP, 1, 1)
+    processor.onaudioprocess = e => { if (tempo.do(e.inputBuffer.getChannelData(0))) beats?.push(performance.now()) }
+    source.connect(processor)
+    processor.connect(ctx.destination) // utgången är tyst, men utan den körs inte processorn
+    beats = []
+  })
 
   return {
     label,
+    get lost() { return ended },
     read() {
       if (ended) return { level: 0, bass: 0, mid: 0, treble: 0 }
       analyser.getFloatTimeDomainData(time)
       analyser.getFloatFrequencyData(db)
       let sum = 0
       for (const x of time) sum += x * x
-      return { level: Math.sqrt(sum / time.length), bass: band(bassLo, bassHi), mid: band(150, 2000), treble: band(2000, 8000) }
+      return { level: Math.sqrt(sum / time.length), bass: band(bassLo, bassHi), mid: band(150, 2000), treble: band(2000, 8000), onset: onset(), beats: beats?.splice(0) }
     },
     setBassBand(lo, hi) { bassLo = lo; bassHi = hi },
     close() {
+      closed = true
+      if (processor) processor.onaudioprocess = null
       stop()
       ctx.close().catch(() => {})
     },

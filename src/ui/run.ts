@@ -80,6 +80,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let micAuto = false
   let drawPanel = () => {}
   let litUntil = 0
+  let lostUntil = 0 // när rutan om en tappad ljudkälla försvinner
+  let lostShown: Mic | null = null // källan som rutan redan har visats för
   // Fyrverkeriet och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
   const sky = createFireworks()
   let lastIndex = 0
@@ -127,13 +129,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const cheer = el('p', { className: 'cheer', hidden: true })
   const paused = el('p', { className: 'paused', textContent: 'Pausad', hidden: true })
   const fullscreenHint = el('p', { className: 'fullscreen-hint', textContent: 'Tryck F för fullskärm', hidden: true })
+  const lostNotice = el('p', { className: 'lost', role: 'alert', hidden: true })
   const quit = el('p', { className: 'quit', role: 'alert', hidden: true })
   quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, R börjar om från början, valfri annan tangent fortsätter')
   const animLine = el('p', { className: 'label', hidden: true })
-  const beatDot = el('span', { className: 'lamp', ariaHidden: 'true' })
-  const beatMode = el('span')
-  const beatBox = el('p', { className: 'beat' })
-  beatBox.append(beatDot, beatMode)
 
   function show(m: typeof mode, ...children: Node[]) {
     mode = m
@@ -163,7 +162,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   }
 
   function begin() {
-    show('live', top, status, current, live.node, banner, cheer, countdown, pep, paused, fullscreenHint, quit, beatBox)
+    show('live', top, status, current, live.node, banner, cheer, countdown, pep, paused, fullscreenHint, lostNotice, quit)
     prevPos = pepFrom = position(clock, now())
     lastIndex = locate(segments, prevPos).index
   }
@@ -209,6 +208,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     frameId = requestAnimationFrame(frame)
     const t = now()
     main.classList.toggle('nocursor', t - movedAt > 3000)
+    main.classList.toggle('still', !animOn) // stänger av ljusskenet över staplarna (se styles.css)
     if (mode === 'overview') {
       // Det sparade valet läses in efter att vyn har öppnats, så raden skrivs varje bildruta (put skriver bara ändringar).
       animLine.hidden = !stage || stage.broken
@@ -231,15 +231,11 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const f = source.update(reading, t)
     if (mode === 'overview') drawPanel()
     if (mode !== 'live') return
-    // Fylld prick för mikrofonen och tom ring för den interna takten, så att läget syns utan att läsa texten.
     if (f.beat) litUntil = t + 120
-    beatDot.classList.toggle('on', t < litUntil)
     // Procenten, klockan och stapeln som pågår lyser upp i takt, men bara från zonen Tempo och uppåt.
     const pulse = t < litUntil && clock.running && !calmZone
     current.classList.toggle('pulse', pulse)
     live.node.classList.toggle('pulse', pulse)
-    beatDot.classList.toggle('ring', f.mode === 'intern')
-    put(beatMode, (f.mode === 'mic' ? mic?.label ?? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
   }
 
   // Ett nytt tryck på en knapp öppnar källan på nytt, till exempel efter att mikrofonen har kopplats ur.
@@ -326,6 +322,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     paused.hidden = run
     if (document.fullscreenElement) hint = false
     fullscreenHint.hidden = !hint
+    // En tappad ljudkälla visas i tio sekunder, en gång per källa.
+    if (mic?.lost && lostShown !== mic) {
+      lostShown = mic
+      put(lostNotice, `${mic.label} tappades. Takten är intern nu.`)
+      lostUntil = performance.now() + 10_000
+    }
+    lostNotice.hidden = performance.now() >= lostUntil
     return at
   }
 
@@ -401,7 +404,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   // Även i överblicken, så att skärmen inte släcks under genomgången före start.
   wake()
 
-  store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity }).catch(() => {})
+  store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity; source.leadMs = s.leadMs }).catch(() => {})
   store.getAnimationsOn().then(on => { animOn = on }).catch(() => {})
   // Även efter en omladdning mitt i passet, då panelen med knappen inte visas.
   Promise.resolve()

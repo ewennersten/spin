@@ -1,6 +1,8 @@
 const TAU_MS = 1000
 const FLOOR = 0.0002 // linjär amplitud, −74 dB, så att även en mikrofon som dämpar basen kan ge slag
-const GAP_MS = 400 // högst 2,5 slag per sekund
+// Samma ljud ger inte två slag. Kort nog att virveln hörs strax efter en hi-hat; pulsen på skärmen spärras
+// till högst 2,5 per sekund i BeatSource.
+const GAP_MS = 150
 
 // Ett slag är när energin plötsligt stiger över sitt eget glidande medelvärde, så att tröskeln följer salens ljudnivå.
 export class BeatDetector {

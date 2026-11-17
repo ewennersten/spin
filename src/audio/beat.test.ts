@@ -14,8 +14,10 @@ it('hittar slagen i 130 slag per minut', () => {
   expect(beats).toBeGreaterThanOrEqual(20)
   expect(beats).toBeLessThanOrEqual(22)
 })
-it('ger aldrig mer än 2,5 slag per sekund', () => {
-  expect(run(pulse(100))).toBeLessThanOrEqual(26)
+// Pulsen på skärmen spärras till 2,5 per sekund i BeatSource. Detektorn hör tätare, så att virveln hörs efter en hi-hat.
+it('ger högst ett slag per 150 ms', () => {
+  expect(run(pulse(100))).toBeLessThanOrEqual(67)
+  expect(run(pulse(234))).toBeGreaterThanOrEqual(40) // åttondelar i 128 slag per minut
 })
 it('ger lika många slag när hela signalen är svagare', () => {
   const p = pulse(60000 / 130)

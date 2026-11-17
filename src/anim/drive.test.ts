@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { BandLevels, BeatPulse, SceneDirector, calmFor, edgeOpacity, follow, intensityFor, shakeAmount } from './drive'
+import { BandLevels, BeatPulse, SceneDirector, calmFor, follow, intensityFor, shakeAmount } from './drive'
 
 it('intensitet: 50 % ger 0, 120 % ger 1, rakt emellan', () => {
   expect(intensityFor(50)).toBe(0)
@@ -13,15 +13,15 @@ it('follow når 63 % av vägen på en tidskonstant och hoppar inte efter ett lå
   expect(follow(0.2, 1, 0, 1500)).toBe(0.2)
   expect(follow(0, 1, 10000, 1500)).toBe(follow(0, 1, 100, 1500)) // glappet räknas som högst 100 ms
 })
-it('slagpulsen stiger mjukt på 80 ms och klingar av', () => {
+it('slagpulsen stiger på 30 ms och klingar av', () => {
   const p = new BeatPulse()
   expect(p.value(0)).toBe(0)
   p.beat(1000)
   expect(p.value(1000)).toBe(0)           // inget hopp i samma ögonblick
-  expect(p.value(1040)).toBeGreaterThan(0)
-  expect(p.value(1040)).toBeLessThan(1)
-  expect(p.value(1080)).toBeCloseTo(1)
-  expect(p.value(1330)).toBeCloseTo(Math.exp(-1), 2) // 250 ms efter toppen
+  expect(p.value(1015)).toBeGreaterThan(0)
+  expect(p.value(1015)).toBeLessThan(1)
+  expect(p.value(1030)).toBeCloseTo(1)
+  expect(p.value(1280)).toBeCloseTo(Math.exp(-1), 2) // 250 ms efter toppen
   expect(p.value(3000)).toBeLessThan(0.01)
 })
 it('ett nytt slag mitt i avklingningen börjar från nuvarande värde', () => {
@@ -30,7 +30,7 @@ it('ett nytt slag mitt i avklingningen börjar från nuvarande värde', () => {
   const before = p.value(400)
   p.beat(400)
   expect(p.value(400)).toBeCloseTo(before)
-  expect(p.value(480)).toBeCloseTo(1)
+  expect(p.value(430)).toBeCloseTo(1)
 })
 it('ljudbanden: jämn nivå från mikrofonen närmar sig 1 och ett plötsligt hopp jämnas ut', () => {
   const b = new BandLevels()
@@ -91,13 +91,6 @@ it('lugnt läge under vila och paus', () => {
   expect(calmFor(55, true)).toBe(true)
   expect(calmFor(60, true)).toBe(false)
   expect(calmFor(100, false)).toBe(true)
-})
-it('kantramen tänds från 95 % och är som starkast vid 120 % på ett slag', () => {
-  expect(edgeOpacity(94, 1)).toBe(0)
-  expect(edgeOpacity(120, 1)).toBe(1)
-  expect(edgeOpacity(120, 0)).toBeCloseTo(0.4)
-  expect(edgeOpacity(107.5, 1)).toBeCloseTo(0.5)
-  expect(edgeOpacity(140, 1)).toBe(1)
 })
 it('kameraskak från intensitet 0,8', () => {
   expect(shakeAmount(0.8)).toBe(0)

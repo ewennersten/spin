@@ -24,7 +24,7 @@ const PEPWORDS = 'spinning.pepwords.v1'
 const MIC = 'spinning.mic.v1'
 const ANIM = 'spinning.anim.v1'
 const PEP_DEFAULT = ['Kom igen!', 'Håll i!', 'Starkt!', 'Tryck på!', 'Ni äger det här!', 'Snart där!', 'Ge allt!', 'Bra jobbat!']
-const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150 }
+const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 }
 
 const newId = () => crypto.randomUUID()
 const withNewIds = (w: Workout): Workout => ({
@@ -102,7 +102,9 @@ export function createStorage(kv: KV = window.localStorage): Store {
     },
     async savePepWords(words) { kv.setItem(PEPWORDS, JSON.stringify(words)) },
     async getMicSettings() {
-      return readSetting(MIC, { ...MIC_DEFAULT }, v => ['sensitivity', 'bassLoHz', 'bassHiHz'].every(k => Number.isFinite(v?.[k])))
+      const s = readSetting(MIC, { ...MIC_DEFAULT }, v => ['sensitivity', 'bassLoHz', 'bassHiHz'].every(k => Number.isFinite(v?.[k])))
+      // Inställningar sparade före synkreglaget saknar leadMs och får standardvärdet, utan att resten går förlorat.
+      return Number.isFinite(s.leadMs) ? s : { ...s, leadMs: MIC_DEFAULT.leadMs }
     },
     async saveMicSettings(s) { kv.setItem(MIC, JSON.stringify(s)) },
     async getAnimationsOn() { return readSetting(ANIM, true, v => typeof v === 'boolean') },

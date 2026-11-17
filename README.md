@@ -1,6 +1,6 @@
 # Spinningskärm
 
-Appen visar spinningpasset på storskärmen i salen: vad ni kör nu, hur länge till och vad som kommer sedan. Den lyssnar också på musiken genom laptopens mikrofon och letar efter takten i basen.
+Appen visar spinningpasset på storskärmen i salen: vad ni kör nu, hur länge till och vad som kommer sedan. Den lyssnar också på musiken genom laptopens mikrofon och letar efter takten, främst i basen men även i virvel och hi-hat.
 
 Använd Chrome eller Edge.
 
@@ -69,16 +69,19 @@ Klicka på **Starta** vid ett pass i biblioteket. Överblicken som då visas, f�
 
 - **Slå på mikrofonen** öppnar mikrofonen. Första gången frågar webbläsaren om lov.
 - **Nivå** visar hur mycket mikrofonen hör.
-- **Lampan** blinkar på varje slag som mikrofonen hittar. I läget Intern takt är den släckt.
-- **Mikrofon** eller **Intern takt** visar vilket läge som gäller just nu. Står det Intern takt används inte mikrofonen.
-- **Känslighet** (1 till 10): högre ger fler slag, lägre ger färre.
-- **Basband** är de frekvenser där appen letar efter bastrumman, från 20 till 500 Hz. Från början 40 till 150 Hz.
+- **Lampan** blinkar i takt med pulsen. I läget Intern takt är den släckt.
+- **Mikrofon** eller **Intern takt** visar vilket läge som gäller just nu. Står det Intern takt används inte mikrofonen. När appen har hittat låtens takt står den efter källan, till exempel **Mikrofon, 128 slag per minut**.
+- **Känslighet** (1 till 10): högre ger fler slag, lägre ger färre. Gäller bara appens egen slagdetektor, som används om aubio inte går att ladda (se nedan).
+- **Basband** är de frekvenser som appen räknar som bas, från 20 till 500 Hz. Från början 40 till 150 Hz. Animationen rör sig med basen i bandet. Den egna slagdetektorn låter basen väga dubbelt, men räknar även virvel och hi-hat.
+- **Synk** (0 till 300 ms, från början 120): hur långt före slaget pulsen visas. Ljudfångsten, datorn och skärmen eller projektorn gör att pulsen annars kommer efter musiken. Känns pulsen sen, dra uppåt; kommer den före trumman, dra nedåt.
+
+Slagen hittas med [aubio](https://aubio.org/), ett beprövat program med öppen källkod för att följa takten i musik (paketet aubiojs, GPL-licens). aubio får ljudet i bitar om 5 ms och förutser själv var slagen kommer. Går aubio inte att ladda använder appen sin egen, enklare slagdetektor. När slagen går i jämn takt räknar appen ut låtens takt och förutser nästa slag. Då kommer pulsen i tid med musiken, enligt Synk, och fortsätter även över slag som inte hörs. Efter ett byte av låt tar det några sekunder innan takten är hittad; under tiden följer pulsen de slag appen hör, en aning efter musiken. Hörs ingen jämn takt på åtta slag släpper appen den.
 
 Reglaget sparas direkt. Ett talfält gäller och sparas först när du trycker Enter eller Tab, klickar utanför fältet eller startar passet med mellanslag. Inställningarna finns kvar nästa gång.
 
 Mellanslag startar passet även när reglaget eller ett talfält har fokus. Pilarna går till reglaget eller talfältet så länge det har fokus.
 
-Under passet visar en liten ruta nere till höger läget. En fylld prick blinkar på slagen från mikrofonen, och en tom ring blinkar i den interna takten.
+Under passet visas inte vilket läge som gäller, så att skärmen bara visar passet. Kontrollera läget i panelen i överblicken före start.
 
 Appen går över till **intern takt** (130 slag per minut) när mikrofonen är avstängd, inte är tillåten eller har varit tyst i mer än fem sekunder. När ljudet kommer tillbaka efter tystnad gäller mikrofonen igen. Klockorna påverkas aldrig av ljudet.
 
@@ -90,9 +93,9 @@ Spelar du musiken från samma dator kan appen lyssna direkt på datorns ljud. D�
 
 1. Klicka **Lyssna på datorns ljud** i panelen **Musikens takt**.
 2. Chrome frågar vad som ska delas. Välj **Hela skärmen** och slå på att systemljudet delas. Spelar musiken i en Chrome-flik (till exempel Spotify på webben) kan du i stället välja den fliken och slå på flikens ljud.
-3. Klicka **Dela**. Det ska stå **Datorns ljud** i panelen och nere till höger under passet.
+3. Klicka **Dela**. Det ska stå **Datorns ljud** i panelen.
 
-Systemljud från hela skärmen kräver en ny Chrome (version 141 eller senare) och macOS 14.2 eller senare. Bilden från skärmen används inte. Klickar du **Sluta dela** går appen över till intern takt. Laddas sidan om mitt i passet visas ingen överblick, så då går datorns ljud inte att välja igen förrän nästa pass. Mikrofonen startar i stället av sig själv, om den är tillåten, och **M** växlar till intern takt.
+Systemljud från hela skärmen kräver en ny Chrome (version 141 eller senare) och macOS 14.2 eller senare. Bilden från skärmen används inte. Klickar du **Sluta dela**, eller tappas ljudet på annat sätt, går appen över till intern takt, och under passet visas i tio sekunder en ruta uppe vid kanten: **Datorns ljud tappades. Takten är intern nu.** Samma ruta visas med **Mikrofon** om mikrofonen kopplas ur. Laddas sidan om mitt i passet visas ingen överblick, så då går datorns ljud inte att välja igen förrän nästa pass. Mikrofonen startar i stället av sig själv, om den är tillåten, och **M** växlar till intern takt.
 
 ### Om mikrofonen inte är tillåten
 
@@ -106,11 +109,13 @@ Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällt
 
 ## Animationerna
 
-Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Passets namn, stapelbilden och takt-rutan ligger på mörka plattor. Blockets namn, procenten och klockan står direkt på animationen med en mörk skugga runt bokstäverna. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Passets namn och totaltiden, blockets namn, procenten, klockan och stapelbilden står direkt på animationen, texten med en mörk skugga runt bokstäverna. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
 
 Under nedräkningen de sista fem sekunderna står siffran stort mitt på skärmen, och klockorna tonas ned. När ett hårt block (från 76 % av FTP och minst 15 sekunder långt) har körts klart smäller ett fyrverkeri i skärmens övre del, och ett ord som "Starkt jobbat!" poppar fram. Hoppar du förbi blocket med pilarna blir det inget fyrverkeri.
 
-Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, fyrverkeriet uteblir (ordet visas ändå), och rutan nere till höger visar **Animationer av**. Valet sparas tills du trycker A igen.
+Staplarna är frostat glas som lyser starkast nere vid golvet och speglas suddigt i ett blankt golv. Stapeln som pågår lyser i zonens färg, och ljuset i dess botten slår i takt med musiken. Var 20:e sekund sveper ett svagt, snett ljussken över staplarna. A och minskade rörelser stänger av ljusskenet.
+
+Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, och fyrverkeriet uteblir (ordet visas ändå). I överblicken står det **Animationer: av**. Valet sparas tills du trycker A igen.
 
 Saknar datorn stöd för 3D-grafik (WebGL), eller tappas den mitt i passet, fortsätter skärmen som vanligt utan animationer.
 
@@ -124,15 +129,15 @@ För utveckling finns två lägen i adressen:
 Ta med det här till salen och bocka av:
 
 - [ ] Kontrollera först att mikrofonen hör musiken. Sätt igång musiken på vanlig volym, klicka **Starta** vid ett pass i biblioteket och klicka **Slå på mikrofonen**. Det ska stå **Mikrofon**, och nivåmätaren ska röra sig med musiken. Står det Intern takt hör mikrofonen ingenting, och då säger lampan inget om takten.
-- [ ] Titta på lampan. Följer den bastrumman? Den kan komma en aning efter trumman, det är väntat.
+- [ ] Titta på lampan. Följer den bastrumman? De första sekunderna av en låt kan den komma en aning efter; när det står slag per minut efter källan ska den vara i takt.
+- [ ] Ställ in Synk: står det slag per minut och pulsen ändå känns sen eller tidig, dra reglaget tills pulsen på storskärmen slår samtidigt som trumman. Anteckna värdet.
 - [ ] Prova känsligheten: dra reglaget uppåt och nedåt och se var lampan följer trumman utan extra blink.
 - [ ] Missar lampan slag: höj basbandets övre gräns, till exempel från 150 till 200 eller 250 Hz, och tryck Enter. Laptopens mikrofon hör ofta den djupaste basen dåligt.
 - [ ] Prova medan instruktören pratar. Blinkar lampan på rösten i stället för på trumman?
-- [ ] Anteckna vilken musik det fungerade med och vilken det inte fungerade med, och vilka värden för känslighet och basband som var bäst.
+- [ ] Anteckna vilken musik det fungerade med och vilken det inte fungerade med, och vilka värden för känslighet, basband och synk som var bäst.
 - [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt.
 - [ ] Klockorna går att läsa från den bakersta cykeln medan animationen går.
-- [ ] A stänger av animationerna, och det står **Animationer av** nere till höger.
+- [ ] A stänger av animationerna, och i överblicken står det **Animationer: av**.
 - [ ] Fyrverkeriet efter ett hårt block bländar inte, och nedräkningens siffror går att läsa framför animationen.
-- [ ] Den röda kantramen i VO2max-intervallerna känns inte för stark, och inte som ett blink över hela skärmen.
 - [ ] Vila och paus ser lagom dämpade ut: lugna, men inte avstängda.
 - [ ] Inget i bilden ser ut att flimra i takt med musiken utöver pulserna, till exempel staplar och berg som ändrar storlek med basen.

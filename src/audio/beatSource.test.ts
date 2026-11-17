@@ -44,3 +44,23 @@ it('ger aldrig två slag tätare än 400 ms, inte heller när läget byts', () =
   expect(beats.length).toBeGreaterThan(20)
   expect(Math.min(...gaps)).toBeGreaterThanOrEqual(400)
 })
+
+it('följer slagen från aubio och visar pulsen leadMs före nästa slag', () => {
+  const s = new BeatSource(new BeatDetector())
+  s.leadMs = 100
+  const period = 469
+  const pulses: number[] = []
+  let next = 1000
+  for (let t = 0; t < 12000; t += 1000 / 60) {
+    const beats: number[] = []
+    while (next <= t) { beats.push(next); next += period }
+    if (s.update({ ...loud, beats }, t).beat) pulses.push(t)
+  }
+  const late = pulses.filter(t => t > 5000)
+  expect(late.length).toBeGreaterThan(12)
+  for (const t of late) {
+    const ahead = (period - ((t - 1000) % period)) % period
+    expect(ahead).toBeGreaterThan(100 - 17)
+    expect(ahead).toBeLessThanOrEqual(100)
+  }
+})

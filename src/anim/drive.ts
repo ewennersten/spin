@@ -13,10 +13,11 @@ export function follow(current: number, target: number, dtMs: number, tauMs: num
   return current + (target - current) * (1 - Math.exp(-Math.min(dtMs, 100) / tauMs))
 }
 
-const RISE_MS = 80
+// Kort uppgång, så att toppen syns i takt med musiken. Två bildrutor, så att det inte blir ett hopp i ett enda ögonblick.
+const RISE_MS = 30
 const DECAY_MS = 250
 
-// Stiger mjukt till 1 på 80 ms från värdet vid slaget, klingar sedan av.
+// Stiger till 1 på 30 ms från värdet vid slaget, klingar sedan av.
 export class BeatPulse {
   #at: number | null = null
   #from = 0
@@ -111,10 +112,6 @@ export function calmCap(current: number | null, pctNow: number, dtMs: number): n
   return current === null ? target : follow(current, target, dtMs, 800)
 }
 
-export function edgeOpacity(pctNow: number, pulse: number): number {
-  const k = clamp((pctNow - 95) / 25, 0, 1)
-  return k * (0.4 + 0.6 * pulse)
-}
 
 // Skrivet som intensity × 5 − 4, eftersom (1 − 0,8) / 0,2 blir 0,9999… i flyttal.
 export function shakeAmount(intensity: number): number {

@@ -54,12 +54,78 @@ h2,
 
 /* Sidhuvudet i biblioteket och redigeraren: tridräktens övertoning. */
 .club {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 12px;
   padding: 36px max(16px, calc((100% - 968px) / 2)) 28px;
   background: linear-gradient(180deg, var(--rod) 0%, #a5111f 34%, var(--vinrod) 62%, var(--svart) 100%);
+}
+
+.club > :not(.pulse) {
+  position: relative;
+}
+
+/* Sidhuvudets hjärtslag: en glöd som slår i 120 slag per minut, och en pulsmätare bakom rubriken i samma takt
+   (src/ui/pulse.ts ritar kurvan och flyttar punkten). */
+.club::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10% 10% 35%;
+  z-index: -1;
+  background: radial-gradient(closest-side, #ff4d5e, transparent);
+  opacity: 0.25;
+  animation: heartbeat 0.5s ease-out infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    opacity: 0.22;
+  }
+  18% {
+    opacity: 0.55;
+  }
+}
+
+.club .pulse {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46%;
+  z-index: 0;
+  height: 110px;
+  color: #ffffff;
+  opacity: 0.7;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 10px var(--rod));
+  /* Kurvan tonar in från vänster och ut mot höger kanten, så att den stör rubriken minst. */
+  mask-image: linear-gradient(90deg, transparent 0%, #000 25%, #000 90%, transparent 100%);
+}
+
+.club .pulse canvas {
+  display: block;
+}
+
+/* Punkten som ritar kurvan: en vit prick med glöd. */
+.club .pulse-dot {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px 3px #ffffff, 0 0 22px 8px var(--rod);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .club::before {
+    animation: none;
+  }
 }
 
 .club .logo {
@@ -225,6 +291,55 @@ h2,
 .workout .time {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* När biblioteket öppnas växer passens staplar upp nedifrån, en efter en. */
+.workout svg .bar,
+.workout svg .bar-reflection {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: bar-rise 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation-delay: calc(120ms + var(--i, 0) * 35ms);
+}
+
+/* Speglingen växer nedåt från golvet. */
+.workout svg .bar-reflection {
+  transform-origin: top;
+}
+
+@keyframes bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+
+/* Starta lyser upp när man pekar på den. */
+.library .primary:hover:not(:disabled) {
+  box-shadow: 0 0 18px #ff2b40aa;
+}
+
+/* Fortsätt på ett pass som pågår slår som ett hjärta, med en ring som vidgas. */
+.workout.ongoing .primary {
+  animation: ping 1.2s ease-out infinite;
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 #ff2b40cc;
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 12px #ff2b4000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout svg .bar,
+  .workout svg .bar-reflection,
+  .workout.ongoing .primary {
+    animation: none;
+  }
 }
 
 /* Ett pass som pågår eller är pausat: rött streck, en lysande prick och var klockan står. */
@@ -811,7 +926,7 @@ h2,
 .run .current.pulse .pct,
 .run .current.pulse .remaining {
   transform: scale(1.04);
-  transition-duration: 50ms;
+  transition-duration: 0ms; /* slaget syns direkt och klingar sedan av */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -825,12 +940,11 @@ h2,
   height: 33vh;
 }
 
-/* Under passet ligger texten på mörka plattor, så att den går att läsa framför 3D-bilden.
+/* Under passet ligger felmeddelanden på mörka plattor, så att de går att läsa framför 3D-bilden.
    92 % täckning ger minst 7:1 även när det bakom är helvitt (se src/ui/contrast.ts).
-   Blockets namn, procent och klockor (.current) och stapelbilden har ingen platta, så att animationen syns
-   mellan dem. Texten står i stället i en mörk gloria; ljusspärren håller bilden mörk i snitt. */
-.run[data-mode='live'] .top,
-.run[data-mode='live'] .beat,
+   Passets namn och totaltid (.top), blockets namn, procent och klockor (.current) och stapelbilden har ingen
+   platta, så att animationen syns mellan dem. Texten står i stället i en mörk gloria; ljusspärren håller bilden
+   mörk i snitt. */
 .run[data-mode='live'] .error:not(:empty),
 #app:has(> .run[data-mode='live']) > .leave-error {
   background: #170a0ceb;
@@ -844,6 +958,7 @@ h2,
   padding: 1vh 2vw;
 }
 
+.run[data-mode='live'] .top,
 .run[data-mode='live'] .current {
   text-shadow: 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
 }
@@ -856,13 +971,37 @@ h2,
 /* Stapeln som pågår lyser och blinkar till i takt med musiken (klassen pulse sätts av run.ts).
    Bara en stapel och en svag ljusning, så att det aldrig blir ett blink över skärmen. */
 .run .chart .now .glow {
-  opacity: 0.12;
+  opacity: 0.25;
   transition: opacity 260ms ease-out;
 }
 
 .run .chart.pulse .now .glow {
-  opacity: 0.3;
-  transition-duration: 50ms;
+  opacity: 0.6;
+  transition-duration: 0ms; /* slaget syns direkt och klingar sedan av */
+}
+
+/* Ett snett ljussken sveper över glasstaplarna var 20:e sekund, på passkärmen. Svagt och långsamt, så att det
+   aldrig blir ett blink. A och minskade rörelser stänger av det. */
+.sweep {
+  transform: translateX(-200px);
+}
+
+.run .chart .sweep {
+  animation: sweep 20s ease-in-out infinite;
+}
+
+.run.still .chart .sweep {
+  animation: none;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-200px);
+  }
+  15%,
+  100% {
+    transform: translateX(1300px);
+  }
 }
 
 .run .chart svg {
@@ -875,7 +1014,11 @@ h2,
 
 @media (prefers-reduced-motion: reduce) {
   .run .chart.pulse .now .glow {
-    opacity: 0.12;
+    opacity: 0.25;
+  }
+
+  .run .chart .sweep {
+    animation: none;
   }
 }
 
@@ -886,6 +1029,7 @@ h2,
 .run .pepword,
 .run .paused,
 .run .quit,
+.run .lost,
 .run .fullscreen-hint {
   position: absolute;
   left: 0;
@@ -1030,6 +1174,16 @@ h2,
   font-size: calc(9 * var(--u));
 }
 
+/* Rutan när ljudkällan tappas: uppe vid kanten, med rött streck, så att instruktören ser den. */
+.run .lost {
+  top: 3vh;
+  transform: none;
+  padding: 1.5vh 3vw;
+  font-size: calc(4 * var(--u));
+  font-weight: 700;
+  border: 0.4vh solid var(--rod);
+}
+
 .run .fullscreen-hint {
   top: 3vh;
   transform: none;
@@ -1039,28 +1193,18 @@ h2,
   border: 0.4vh solid var(--laxrosa);
 }
 
-/* 3D-bilden bakom skärmen och kantramen framför den. Ingen av dem tar emot musen. */
-.stage,
-.edge {
+/* 3D-bilden bakom skärmen. Den tar inte emot musen. */
+.stage {
   position: fixed;
   inset: 0;
-  pointer-events: none;
-}
-
-.stage {
   z-index: 0;
+  pointer-events: none;
 }
 
 .stage canvas {
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.edge {
-  z-index: 2;
-  opacity: 0;
-  box-shadow: inset 0 0 0 1.2vh currentColor;
 }
 
 /* Mätrutan för ljuset (?ljus=1), nere till vänster. */
@@ -1188,36 +1332,4 @@ h2,
 .run .lamp.on {
   background: var(--rod);
   box-shadow: 0 0 0 0.15em var(--text);
-}
-
-/* Taktens läge i nedre högra hörnet, litet och med mörk botten över staplarna. */
-.run .beat {
-  position: absolute;
-  right: 1vw;
-  bottom: 1vh;
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.3em 0.7em;
-  border-radius: 1vh;
-  background: #170a0ccc;
-  color: var(--muted);
-  font-size: 2.2vh;
-}
-
-.run .beat .lamp {
-  box-sizing: border-box;
-  width: 0.7em;
-  height: 0.7em;
-}
-
-/* Den interna takten är en tom ring som blinkar. */
-.run .beat .lamp.ring {
-  background: none;
-  box-shadow: none;
-  border: 0.12em solid #ffffff40;
-}
-
-.run .beat .lamp.ring.on {
-  border-color: var(--text);
 }

@@ -36,6 +36,9 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
   const sensText = el('span', { className: 'value' })
   const lo = el('input', { type: 'number', min: '20', max: '500', ariaLabel: 'Basbandets undre gräns i Hz' })
   const hi = el('input', { type: 'number', min: '20', max: '500', ariaLabel: 'Basbandets övre gräns i Hz' })
+  const lead = el('input', { type: 'range', min: '0', max: '300', step: '10' })
+  const leadText = el('span', { className: 'value' })
+  const showLead = () => { leadText.textContent = `${lead.value} ms före` }
 
   // Läser om inställningarna före varje sparning, så att en ändring här inte skriver över en annan.
   const save = (change: Partial<MicSettings>) =>
@@ -61,6 +64,12 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
     sensText.textContent = sens.value
     void save({ sensitivity: source.detector.sensitivity })
   }
+  // Flyttar pulsen tidigare än slaget, så att den syns i takt trots fördröjningen i ljud och skärm.
+  lead.oninput = () => {
+    source.leadMs = lead.valueAsNumber
+    showLead()
+    void save({ leadMs: source.leadMs })
+  }
   // change och inte input, så att ett halvskrivet tal inte ger fel medan man skriver.
   lo.onchange = hi.onchange = () => {
     const [a, b] = [lo.valueAsNumber, hi.valueAsNumber]
@@ -78,13 +87,17 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
   row1.append(field('Nivå', meter), lamp, modeText)
   const row2 = el('div', { className: 'row' })
   row2.append(field('Känslighet', sens), sensText, field('Basband', lo, 'Hz'), field('till', hi, 'Hz'))
-  root.append(sources, row1, row2, micStatus, status)
+  const row3 = el('div', { className: 'row' })
+  row3.append(field('Synk', lead), leadText)
+  root.append(sources, row1, row2, row3, micStatus, status)
 
   store.getMicSettings().then(s => {
     sens.value = String(s.sensitivity)
     sensText.textContent = sens.value
     lo.value = String(s.bassLoHz)
     hi.value = String(s.bassHiHz)
+    lead.value = String(s.leadMs)
+    showLead()
   }).catch(e => { status.textContent = message(e) })
 
   // Lampan visar bara slag som mikrofonen hör. Den interna takten tänder den aldrig, så att den inte ser ut att följa musiken.
@@ -97,7 +110,9 @@ export function mountMicPanel(root: HTMLElement, store: Store, source: BeatSourc
       if (mic && f.beat) litUntil = t + LAMP_MS
       lamp.classList.toggle('on', mic && t < litUntil)
       meter.value = meterValue(f.level)
-      const text = mic ? ctl.getMic()?.label ?? 'Mikrofon' : 'Intern takt: inget ljud används just nu'
+      // När takten är hittad står den bredvid källan, så att man ser att pulsen följer låten.
+      const bpm = mic && source.predictor.locked(t) ? `, ${Math.round(source.predictor.bpm)} slag per minut` : ''
+      const text = mic ? `${ctl.getMic()?.label ?? 'Mikrofon'}${bpm}` : 'Intern takt: inget ljud används just nu'
       if (modeText.textContent !== text) modeText.textContent = text
     },
   }

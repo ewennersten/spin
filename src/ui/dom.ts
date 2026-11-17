@@ -1,3 +1,5 @@
+import { pulseLine } from './pulse'
+
 export const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}): HTMLElementTagNameMap[K] =>
   Object.assign(document.createElement(tag), props)
 export const link = (textContent: string, href: string) => el('a', { textContent, href, className: 'button' })
@@ -18,7 +20,7 @@ export function clubHeader(title: string, current: 'pass' | 'pep'): HTMLElement 
   const nav = el('nav', { className: 'tabs', ariaLabel: 'Meny' })
   nav.append(tab('Pass', '#/', 'pass'), tab('Peppord', '#/peppord', 'pep'))
   const header = el('header', { className: 'club' })
-  header.append(logo(), el('h1', { textContent: title }), tagline, nav)
+  header.append(pulseLine(), logo(), el('h1', { textContent: title }), tagline, nav)
   return header
 }
 
