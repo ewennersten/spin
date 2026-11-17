@@ -3,20 +3,15 @@ import { parseRoute, type Route, type View } from './router'
 import { createStorage } from './storage/storage'
 import { editorView } from './ui/editor'
 import { libraryView } from './ui/library'
+import { runView } from './ui/run'
 
 const store = createStorage()
 
-const placeholder =
-  (name: string): View =>
-  (root) => {
-    root.textContent = name
-  }
-
-// Kopplingen mellan adress och vy. Senare uppgifter byter platshållarna här.
+// Kopplingen mellan adress och vy.
 const views: Record<Route['view'], View> = {
   library: libraryView(store),
   edit: editorView(store),
-  run: placeholder('Kör pass'),
+  run: runView(store),
 }
 
 const root = document.querySelector<HTMLElement>('#app')!

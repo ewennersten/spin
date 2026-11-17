@@ -208,3 +208,271 @@ body {
   border: 1px solid #ffffff33;
   border-radius: 8px;
 }
+
+/* Skärmen fyller fönstret. Ett sparfel från redigeraren (.leave-error) står kvar överst och tar sin höjd från skärmen. */
+#app:has(> .run) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Storlekar i förhållande till fönstret, så att skärmen går att läsa på tio meters håll. */
+.run {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2vh;
+  box-sizing: border-box;
+  padding: 4vh 4vw;
+  overflow: auto;
+  font-size: 4vh;
+  font-variant-numeric: tabular-nums;
+}
+
+.run [hidden] {
+  display: none !important;
+}
+
+.run.nocursor,
+.run.nocursor * {
+  cursor: none;
+}
+
+.run h1,
+.run p,
+.run ul {
+  margin: 0;
+}
+
+.run h1 {
+  font-size: 7vh;
+}
+
+.run .button {
+  padding: 1vh 2vw;
+  border: 1px solid #ffffff33;
+  border-radius: 6px;
+  background: #ffffff14;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.run .chart {
+  display: block;
+  flex: none;
+  align-self: stretch;
+  /* Över hela bredden, utanför sidans marginal. */
+  margin: 0 -4vw;
+}
+
+.run .total,
+.run .label,
+.run .pctrow {
+  color: var(--muted);
+}
+
+.run[data-mode='overview'] .chart {
+  height: 36vh;
+}
+
+.run .contents {
+  list-style: none;
+  padding: 0;
+  font-size: 3.5vh;
+}
+
+.run .start {
+  font-size: 5vh;
+  font-weight: 600;
+}
+
+.run[data-mode='done'] {
+  justify-content: center;
+  align-items: center;
+  gap: 5vh;
+}
+
+.run[data-mode='done'] h1 {
+  font-size: 16vh;
+}
+
+.run[data-mode='live'] {
+  align-items: stretch;
+  gap: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.run .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4vw;
+  font-size: 5vh;
+}
+
+.run .top h1,
+.run .name,
+.run .next {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.run .top h1 {
+  font-size: inherit;
+}
+
+.run .top .total {
+  flex: none;
+}
+
+/* Procenten bredvid nedräkningen och "Nästa:" bredvid "kvar av intervallet", så att raden Nästa får nästan hela bredden. */
+.run .current {
+  margin: auto 0;
+}
+
+.run .split {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4vw;
+}
+
+.run .split > * {
+  flex: none;
+}
+
+.run .split > .next {
+  flex: 1 1 auto;
+}
+
+.run .name {
+  font-size: 9vh;
+  font-weight: 700;
+}
+
+.run .pctrow {
+  font-size: 5vh;
+}
+
+.run .pct {
+  font-size: 15vh;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.run .next {
+  font-size: 5.5vh;
+}
+
+.run .remaining {
+  font-size: 24vh;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.run[data-mode='live'] .chart {
+  height: 33vh;
+}
+
+/* Signalerna ligger ovanpå skärmen med mörk botten, så att de går att läsa över text och staplar. */
+.run .banner,
+.run .countdown,
+.run .pepword,
+.run .paused,
+.run .quit,
+.run .fullscreen-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 90vw;
+  margin: 0 auto;
+  padding: 2vh 4vw;
+  border-radius: 2vh;
+  background: #0b0b0bf2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.run .banner {
+  width: 100vw;
+  max-width: none;
+  border-radius: 0;
+  border-block: 1.2vh solid;
+  padding: 5vh 4vw;
+  background: #161616f7;
+}
+
+.run .banner-name {
+  font-size: 12vh;
+  font-weight: 800;
+}
+
+.run .banner p:last-child {
+  font-size: 7vh;
+}
+
+/* Nedräkningen tonar ned hela skärmen i stället för att skära genom klockans siffror. */
+.run .countdown {
+  inset: 0;
+  transform: none;
+  width: auto;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: #0b0b0bd9;
+  font-size: 50vh;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Peppord och "Pausad" ligger över staplarna, så att klockorna och "Nästa:" syns. De visas aldrig samtidigt. */
+.run .pepword,
+.run .paused {
+  top: 83.5vh;
+}
+
+.run .pepword {
+  font-size: 12vh;
+  font-weight: 800;
+}
+
+.run .paused {
+  font-size: 16vh;
+  font-weight: 800;
+  border: 0.8vh solid var(--text);
+}
+
+/* Rutan tonar ned resten av skärmen. */
+.run .quit {
+  z-index: 1;
+  font-size: 5vh;
+  border: 0.6vh solid var(--text);
+  box-shadow: 0 0 0 100vmax #0b0b0bb3;
+}
+
+.run .quit strong {
+  display: block;
+  font-size: 9vh;
+}
+
+.run .fullscreen-hint {
+  top: 3vh;
+  transform: none;
+  padding: 1.5vh 3vw;
+  font-size: 4vh;
+  font-weight: 700;
+  border: 0.4vh solid var(--text);
+}
