@@ -1,3 +1,6 @@
+import { BeatDetector } from '../audio/beat'
+import { BeatSource, type MicReading } from '../audio/beatSource'
+import { openMic, type Mic } from '../audio/mic'
 import { IDLE, pause, position, seek, start, type ClockState } from '../clock/clock'
 import { locate, nextStartMs, prevStartMs } from '../clock/lookup'
 import { clearRun, loadRun, saveRun } from '../clock/runState'
@@ -10,6 +13,7 @@ import type { Store } from '../storage/storage'
 import { renderChart } from './chart'
 import { bannerVisible, countdownNumber, jumped, pepAllowed, pepIntervalSec } from './cues'
 import { el, link, message } from './dom'
+import { mountMicPanel } from './micPanel'
 
 // 30 s, 8 min, 1 min 30 s
 function length(sec: number): string {
@@ -55,6 +59,12 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let pepSpread = 1
   let pepUntil = 0
   let lastWord = ''
+  // Ljudet: skärmen äger mikrofonen. Med givet tillstånd öppnas den vid första tangenttryckningen eller klicket.
+  const source = new BeatSource(new BeatDetector())
+  let mic: Mic | null = null
+  let micAuto = false
+  let drawPanel = () => {}
+  let litUntil = 0
 
   const live = bars(w, segments)
   const totalText = el('p', { className: 'total' })
@@ -83,6 +93,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const fullscreenHint = el('p', { className: 'fullscreen-hint', textContent: 'Tryck F för fullskärm', hidden: true })
   const quit = el('p', { className: 'quit', role: 'alert', hidden: true })
   quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, valfri annan tangent fortsätter')
+  const beatDot = el('span', { className: 'lamp', ariaHidden: 'true' })
+  const beatMode = el('span')
+  const beatBox = el('p', { className: 'beat' })
+  beatBox.append(beatDot, beatMode)
 
   function show(m: typeof mode, ...children: Node[]) {
     mode = m
@@ -93,12 +107,14 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   function overview() {
     const list = el('ul', { className: 'contents' })
     list.append(...w.items.map(i => el('li', { textContent: itemText(i) })))
+    const panel = el('div', { id: 'mic-panel' })
     show('overview', el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
-      bars(w, segments).svg, list, el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), el('div', { id: 'mic-panel' }))
+      bars(w, segments).svg, list, el('p', { className: 'start', textContent: 'Mellanslag startar passet' }), panel)
+    drawPanel = mountMicPanel(panel, store, source, { getMic: () => mic, enableMic })
   }
 
   function begin() {
-    show('live', top, status, current, live.svg, banner, countdown, pep, paused, fullscreenHint, quit)
+    show('live', top, status, current, live.svg, banner, countdown, pep, paused, fullscreenHint, quit, beatBox)
     prevPos = pepFrom = position(clock, now())
     wake()
   }
@@ -133,6 +149,41 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const t = now()
     main.classList.toggle('nocursor', t - movedAt > 3000)
     if (mode === 'live') draw(t)
+    sound()
+  }
+
+  // Ljudet räknas efter klockorna, och i verklig tid även med ?fart. Ett fel i mikrofonen ger intern takt.
+  function sound() {
+    let reading: MicReading | null = null
+    try { reading = mic?.read() ?? null } catch { /* reading förblir null */ }
+    const t = performance.now()
+    const f = source.update(reading, t)
+    if (mode === 'overview') drawPanel()
+    if (mode !== 'live') return
+    if (f.beat) litUntil = t + 120
+    beatDot.classList.toggle('on', t < litUntil)
+    put(beatMode, f.mode === 'mic' ? 'Mikrofon' : 'Intern takt')
+  }
+
+  // Ett nytt tryck på knappen öppnar mikrofonen på nytt, till exempel efter att den har kopplats ur.
+  async function enableMic() {
+    micAuto = false
+    const m = await openMic(await store.getMicSettings())
+    if (!alive) return m.close()
+    mic?.close()
+    mic = m
+  }
+  // Webbläsaren startar bara ljud efter en tangenttryckning eller ett klick, och inte efter till exempel Esc.
+  function autoMic() {
+    if (micAuto && navigator.userActivation?.isActive) enableMic().catch(() => {})
+  }
+
+  function nudge(step: number) {
+    const d = source.detector
+    d.sensitivity += step
+    const sensitivity = d.sensitivity
+    store.getMicSettings().then(s => store.saveMicSettings({ ...s, sensitivity }))
+      .catch(e => { status.textContent = `Känsligheten sparades inte: ${message(e)}` })
   }
 
   function draw(t: number) {
@@ -184,6 +235,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   }
 
   function onKey(e: KeyboardEvent) {
+    autoMic()
+    // Tangenter i panelens knapp, reglage och talfält går till dem och styr inte passet.
+    if (e.target instanceof Element && e.target.closest('#mic-panel')) return
     // Mellanslag och pilar rullar annars sidan.
     if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault()
     if (e.repeat) return
@@ -194,7 +248,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       if (e.key === 'Enter') { forget(); location.hash = '#/' }
       return
     }
-    // Kortkommandon som Cmd+R är webbläsarens. Pil upp, pil ned, M och A gör ingenting här.
+    // Kortkommandon som Cmd+R är webbläsarens. A gör ingenting här.
     if (e.ctrlKey || e.metaKey || e.altKey) return
     const key = e.key.toLowerCase()
     const t = now()
@@ -212,6 +266,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     else if (key === 'arrowright') clock = seek(clock, nextStartMs(segments, position(clock, t)), t)
     else if (key === 'arrowleft') clock = seek(clock, prevStartMs(segments, position(clock, t)), t)
     else if (key === 'q') { quitting = true; quit.hidden = false; return }
+    else if (key === 'arrowup' || key === 'arrowdown') return nudge(key === 'arrowup' ? 1 : -1)
+    else if (key === 'm') { source.enabled = !source.enabled; return }
     else return
     persist()
   }
@@ -224,8 +280,16 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   else if (saved) { clock = saved; hint = true; begin() }
   else overview()
 
+  store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity }).catch(() => {})
+  // Även efter en omladdning mitt i passet, då panelen med knappen inte visas.
+  Promise.resolve()
+    .then(() => navigator.permissions.query({ name: 'microphone' }))
+    .then(p => { if (p.state === 'granted') micAuto = true })
+    .catch(() => {})
+
   addEventListener('keydown', onKey)
   addEventListener('mousemove', onMove)
+  main.addEventListener('click', autoMic)
   document.addEventListener('visibilitychange', onVisible)
   frameId = requestAnimationFrame(frame)
   return () => {
@@ -233,8 +297,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     cancelAnimationFrame(frameId)
     removeEventListener('keydown', onKey)
     removeEventListener('mousemove', onMove)
+    main.removeEventListener('click', autoMic)
     document.removeEventListener('visibilitychange', onVisible)
     lock?.release().catch(() => {})
+    mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
   }
 }
 

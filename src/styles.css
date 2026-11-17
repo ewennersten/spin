@@ -476,3 +476,88 @@ body {
   font-weight: 700;
   border: 0.4vh solid var(--text);
 }
+
+/* Mikrofonpanelen i överblicken. Den är till för den som provar takten, så den är mindre än resten. */
+.run #mic-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+  font-size: 2.5vh;
+  color: var(--muted);
+}
+
+.run #mic-panel .row,
+.run #mic-panel label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.run #mic-panel .row {
+  gap: 0.6em 1.5em;
+}
+
+.run #mic-panel button,
+.run #mic-panel input {
+  font: inherit;
+  color: var(--text);
+}
+
+.run #mic-panel button {
+  padding: 0.3em 0.8em;
+  border: 1px solid #ffffff33;
+  border-radius: 6px;
+  background: #ffffff14;
+  cursor: pointer;
+}
+
+.run #mic-panel input[type='number'] {
+  width: 4em;
+}
+
+.run #mic-panel meter {
+  width: 10em;
+}
+
+.run #mic-panel .mode {
+  min-width: 6em;
+  color: var(--text);
+}
+
+.run #mic-panel .value {
+  min-width: 1.2em;
+}
+
+/* Lampan och pricken blinkar på varje slag. */
+.run .lamp {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background: #ffffff26;
+}
+
+.run .lamp.on {
+  background: var(--text);
+}
+
+/* Taktens läge i nedre högra hörnet, litet och med mörk botten över staplarna. */
+.run .beat {
+  position: absolute;
+  right: 1vw;
+  bottom: 1vh;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3em 0.7em;
+  border-radius: 1vh;
+  background: #0b0b0bcc;
+  color: var(--muted);
+  font-size: 2.2vh;
+}
+
+.run .beat .lamp {
+  width: 0.7em;
+  height: 0.7em;
+}
