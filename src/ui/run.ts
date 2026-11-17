@@ -164,8 +164,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     main.classList.toggle('nocursor', t - movedAt > 3000)
     const at = mode === 'live' ? draw(t) : undefined
     sound()
-    // Efter draw, som kan ha avslutat passet.
-    const visible = mode === 'live' && animOn
+    // Efter draw, som kan ha avslutat passet. Dold under nedräkningens och avslutsrutans slöja, så att bilden
+    // tonar upp under ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
+    const visible = mode === 'live' && animOn && countdown.hidden === true && quit.hidden === true
     if (visible !== stageShown) stage?.setVisible(stageShown = visible)
     if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, beat: source.frame, nowMs: performance.now() })
   }
