@@ -97,3 +97,17 @@ it('kameraskak från intensitet 0,8', () => {
   expect(shakeAmount(0.9)).toBeCloseTo(0.5)
   expect(shakeAmount(1)).toBe(1)
 })
+
+it('scenvalet: i vila bara viloscener, annars bara vanliga, och bytet sker direkt', () => {
+  const d = new SceneDirector(4, () => 0.5, null, 3)
+  expect(d.pick(0, 0, false)).toBeLessThan(4)
+  const rest = d.pick(1, 1000, true) // bara en sekund senare, men vila: byts direkt
+  expect(rest).toBeGreaterThanOrEqual(4)
+  expect(rest).toBeLessThan(7)
+  expect(d.pick(1, 5000, true)).toBe(rest)
+  expect(d.pick(2, 6000, false)).toBeLessThan(4) // tillbaka direkt
+  for (let i = 0; i < 50; i++) {
+    const s = d.pick(10 + i, 100000 + i * 30000, i % 2 === 0)
+    expect(i % 2 === 0 ? s >= 4 : s < 4).toBe(true)
+  }
+})

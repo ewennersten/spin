@@ -1256,8 +1256,7 @@ h2,
 
 /* Effekten efter en avslutad intervall och uppbyggnaden före den ligger mellan 3D-bilden och texten och tar inte emot musen. */
 .drop,
-.buildup,
-.discoball {
+.buildup {
   position: fixed;
   inset: 0;
   z-index: 0;

@@ -1,8 +1,8 @@
 import { createBuildup } from '../anim/buildup'
-import { createDiscoball } from '../anim/discoball'
 import { SCREEN_EFFECT, createDrops } from '../anim/drops'
 import { createStage } from '../anim/stage'
 import { SCENES } from '../anim/scenes'
+import { REST_SCENES } from '../anim/scenes/vila'
 import { BeatDetector } from '../audio/beat'
 import { BeatSource, type MicReading } from '../audio/beatSource'
 import { openMic, openSystemAudio, type Mic } from '../audio/mic'
@@ -58,7 +58,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const now = fast ? () => opened + (Date.now() - opened) * fart : () => Date.now()
   // 3D-bilden bakom skärmen, null utan WebGL. ?scen=N tvingar scen N (1 till antalet scener), ?ljus=1 visar mätrutan.
   const scen = Number(params.get('scen'))
-  const forcedScene = Number.isInteger(scen) && scen >= 1 && scen <= SCENES.length ? scen - 1 : null
+  const forcedScene = Number.isInteger(scen) && scen >= 1 && scen <= SCENES.length + REST_SCENES.length ? scen - 1 : null
   const stage = createStage({ forcedScene, lightMeter: params.get('ljus') === '1' })
   stage?.setVisible(false) // syns bara under passet
   let stageShown = false
@@ -91,7 +91,6 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   // Rave-effekten och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
   const drops = createDrops()
   const buildup = createBuildup()
-  const disco = createDiscoball()
   let shakeTimer = 0
   let lastIndex = 0
   let cheerUntil = 0
@@ -292,14 +291,15 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const at = mode === 'live' ? draw(t) : undefined
     if (mode !== 'live') {
       buildup.draw(null, '', '', false, 0) // passet har avslutats eller börjats om
-      disco.draw(false, '', false, performance.now())
     }
     sound()
     // Efter draw, som kan ha avslutat passet. Dold under avslutsrutans slöja, så att bilden tonar upp under
     // ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
     const visible = mode === 'live' && animOn && quit.hidden === true
     if (visible !== stageShown) stage?.setVisible(stageShown = visible)
-    if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, beat: source.frame, nowMs: performance.now() })
+    // Vila: blocket når som högst under 60 % av FTP (zonen Vila). Uppvärmning och nedvarvning räknas inte.
+    const rest = !!at?.segment && Math.max(at.segment.fromPct, at.segment.toPct) < 60
+    if (visible && at) stage?.frame({ pctNow: at.pctNow, running: clock.running, blockIndex: at.index, rest, beat: source.frame, nowMs: performance.now() })
   }
 
   // Ljudet räknas efter klockorna, och i verklig tid även med ?fart. Ett fel i mikrofonen ger intern takt.
@@ -406,8 +406,6 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // I zonens färg för det hårda blocket: det som pågår, eller det som kommer.
     const end = zoneFor(celebrates(seg) || !nextSeg ? seg.toPct : nextSeg.fromPct)
     buildup.draw(run && motion ? buildupLevel(seg, nextSeg, at.remainingMs) : null, end.color, end.textColor, lightSwitch.checked, performance.now())
-    // Discokulan i vila och uppvärmning (zonerna Vila och Lugnt), medan passet går.
-    disco.draw(!!motion && run && calmZone, zone.textColor, lightSwitch.checked, performance.now())
     cheer.hidden = performance.now() >= cheerUntil
     // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
     pep.hidden = !run || t >= pepUntil
@@ -523,7 +521,6 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
     drops.dispose()
     buildup.dispose()
-    disco.dispose()
     clearTimeout(shakeTimer)
     stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }

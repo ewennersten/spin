@@ -11,9 +11,11 @@ import { BandLevels, BeatPulse, NO_CAP, SceneDirector, calmCap, calmFor, follow,
 import { LightGovernor } from './governor'
 import { QUALITY_LEVELS, QualityController } from './quality'
 import { SCENES } from './scenes'
+import { REST_SCENES } from './scenes/vila'
 import type { Scene } from './scenes/scene'
 
-export interface StageFrame { pctNow: number; running: boolean; blockIndex: number; beat: BeatFrame; nowMs: number }
+// rest: blocket är vila (som högst under 60 % av FTP), och då visas bara viloscener.
+export interface StageFrame { pctNow: number; running: boolean; blockIndex: number; rest: boolean; beat: BeatFrame; nowMs: number }
 export interface StageOptions { forcedScene: number | null; lightMeter: boolean }
 // broken: scenen har dolts för resten av vyn (tappad kontext, omätt ljus eller ett fel i frame).
 // setLightLimit slår på och av ljusspärren (LightGovernor). Den är avstängd tills den slås på.
@@ -103,8 +105,10 @@ export function createStage(options: StageOptions): Stage | null {
   if (meterEl) meterEl.className = 'light-meter'
   document.body.append(root, ...(meterEl ? [meterEl] : []))
 
-  const forced = options.forcedScene !== null && options.forcedScene >= 0 && options.forcedScene < SCENES.length ? options.forcedScene : null
-  const director = new SceneDirector(SCENES.length, Math.random, forced)
+  // De vanliga scenerna först, sedan viloscenerna (se SceneDirector). ?scen=N räknar över båda.
+  const all = [...SCENES, ...REST_SCENES]
+  const forced = options.forcedScene !== null && options.forcedScene >= 0 && options.forcedScene < all.length ? options.forcedScene : null
+  const director = new SceneDirector(SCENES.length, Math.random, forced, REST_SCENES.length)
   const pulse = new BeatPulse()
   const bands = new BandLevels()
   let governor = new LightGovernor()
@@ -180,7 +184,7 @@ export function createStage(options: StageOptions): Stage | null {
     current?.dispose()
     current = null
     shake.set(0, 0, 0)
-    current = SCENES[want]()
+    current = all[want]()
     index = want
     current.setParticles(QUALITY_LEVELS[level].particles)
     renderPass.scene = current.scene
@@ -222,7 +226,7 @@ export function createStage(options: StageOptions): Stage | null {
     }
 
     // Scenbyte genom mörker. Glappet räknas som högst 100 ms, så att en dold flik inte tonar upp på en gång.
-    const want = director.pick(f.blockIndex, f.nowMs)
+    const want = director.pick(f.blockIndex, f.nowMs, f.rest)
     const fadeStep = Math.min(dtMs, 100) / FADE_MS
     if (want !== index) {
       fade = Math.max(0, fade - fadeStep)

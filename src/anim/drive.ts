@@ -72,21 +72,25 @@ export class BandLevels {
 
 const SCENE_MIN_MS = 20000
 
-// Byter scen vid nytt block, högst var 20:e sekund och aldrig till samma som nyss.
+// Byter scen vid nytt block, högst var 20:e sekund och aldrig till samma som nyss. Scenerna 0 till count − 1 är de
+// vanliga och de restCount följande är viloscenerna. I vila (rest) väljs bara viloscener och annars bara vanliga;
+// byts det ena mot det andra byts scenen direkt, utan att vänta 20 sekunder.
 export class SceneDirector {
   #current = -1
   #block = 0
   #changedAt = 0
 
-  constructor(readonly count: number, readonly random: () => number = Math.random, readonly forced: number | null = null) {}
+  constructor(readonly count: number, readonly random: () => number = Math.random, readonly forced: number | null = null, readonly restCount = 0) {}
 
-  pick(blockIndex: number, nowMs: number): number {
+  pick(blockIndex: number, nowMs: number, rest = false): number {
     if (this.forced !== null) return this.forced
-    if (this.#current < 0) {
-      this.#current = Math.floor(this.random() * this.count)
+    const [from, n] = rest && this.restCount ? [this.count, this.restCount] : [0, this.count]
+    const inPool = this.#current >= from && this.#current < from + n
+    if (this.#current < 0 || !inPool) {
+      this.#current = from + Math.floor(this.random() * n)
       this.#changedAt = nowMs
-    } else if (blockIndex !== this.#block && nowMs - this.#changedAt >= SCENE_MIN_MS && this.count > 1) {
-      const others = [...Array(this.count).keys()].filter(i => i !== this.#current)
+    } else if (blockIndex !== this.#block && nowMs - this.#changedAt >= SCENE_MIN_MS && n > 1) {
+      const others = [...Array(n).keys()].map(i => from + i).filter(i => i !== this.#current)
       this.#current = others[Math.floor(this.random() * others.length)]
       this.#changedAt = nowMs
     }
