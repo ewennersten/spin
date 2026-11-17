@@ -100,7 +100,7 @@ it('intensitet: 50 % ger 0, 120 % ger 1, rakt emellan', () => {
   expect(intensityFor(150)).toBe(1)
 })
 it('follow når 63 % av vägen på en tidskonstant och hoppar inte efter ett långt glapp', () => {
-  expect(follow(0, 1, 1500, 1500)).toBeCloseTo(0.632, 3)
+  expect(follow(0, 1, 100, 100)).toBeCloseTo(0.632, 3)
   expect(follow(0.2, 1, 0, 1500)).toBe(0.2)
   expect(follow(0, 1, 10000, 1500)).toBe(follow(0, 1, 100, 1500)) // glappet räknas som högst 100 ms
 })
@@ -196,7 +196,7 @@ it('kameraskak från intensitet 0,8', () => {
   - `SceneDirector`: första anropet slumpar. Nytt `blockIndex` och minst 20 000 ms sedan senaste bytet ger en slumpad scen bland de andra. `forced` (0-baserat) vinner alltid.
   - `calmFor`: `!running || pctNow < 60` (zonen Vila).
   - `edgeOpacity`: `k × (0,4 + 0,6 × pulse)` där `k = clamp((pct − 95) / 25, 0, 1)`.
-  - `shakeAmount`: `clamp((intensity − 0,8) / 0,2, 0, 1)`.
+  - `shakeAmount`: `clamp(intensity × 5 − 4, 0, 1)`, det vill säga 0 vid 0,8 och 1 vid 1. Skriv den så, eftersom `(1 − 0,8) / 0,2` blir 0,9999… i flyttal.
 
 - [ ] **Step 4: Kör `npx vitest run src/anim/drive.test.ts`.** Väntat: alla gröna.
 
