@@ -1,4 +1,5 @@
 import { createBuildup } from '../anim/buildup'
+import { createDiscoball } from '../anim/discoball'
 import { SCREEN_EFFECT, createDrops } from '../anim/drops'
 import { createStage } from '../anim/stage'
 import { SCENES } from '../anim/scenes'
@@ -86,6 +87,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   // Rave-effekten och ordet när ett hårt block är klart. lastIndex är blocket som visades förra bildrutan.
   const drops = createDrops()
   const buildup = createBuildup()
+  const disco = createDiscoball()
   let shakeTimer = 0
   let lastIndex = 0
   let cheerUntil = 0
@@ -245,7 +247,10 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
       put(animLine, animOn ? 'Animationer: på (A stänger av)' : 'Animationer: av (A sätter på)')
     }
     const at = mode === 'live' ? draw(t) : undefined
-    if (mode !== 'live') buildup.draw(null, '', '', false, 0) // passet har avslutats eller börjats om
+    if (mode !== 'live') {
+      buildup.draw(null, '', '', false, 0) // passet har avslutats eller börjats om
+      disco.draw(false, '', false, performance.now())
+    }
     sound()
     // Efter draw, som kan ha avslutat passet. Dold under avslutsrutans slöja, så att bilden tonar upp under
     // ljusspärren när slöjan försvinner i stället för att synas med full styrka på en bildruta.
@@ -357,6 +362,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // I zonens färg för det hårda blocket: det som pågår, eller det som kommer.
     const end = zoneFor(celebrates(seg) || !nextSeg ? seg.toPct : nextSeg.fromPct)
     buildup.draw(run && motion ? buildupLevel(seg, nextSeg, at.remainingMs) : null, end.color, end.textColor, lightSwitch.checked, performance.now())
+    // Discokulan i vila och uppvärmning (zonerna Vila och Lugnt), medan passet går.
+    disco.draw(!!motion && run && calmZone, zone.textColor, lightSwitch.checked, performance.now())
     cheer.hidden = performance.now() >= cheerUntil
     // Klockorna tonas ned under nedräkningen och ordet, så att de inte krockar med de stora siffrorna och orden.
     main.classList.toggle('dimmed', n !== null || !cheer.hidden || showBanner)
@@ -471,6 +478,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     mic?.close() // stoppar spåren och stänger ljudet, så att webbläsarens mikrofonsymbol slocknar
     drops.dispose()
     buildup.dispose()
+    disco.dispose()
     clearTimeout(shakeTimer)
     stage?.dispose() // släpper WebGL-kontexten, så att upprepade pass i samma flik inte tar slut på dem
   }
