@@ -8,6 +8,8 @@
   --text: #fff6f4;
   --muted: #c9b8b6;
   --font: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Rubriker och stora siffror: kantigt tekno-typsnitt med lika breda siffror. */
+  --display: 'Tektur Variable', var(--font);
   color-scheme: dark;
 }
 
@@ -20,17 +22,17 @@ body {
   line-height: 1.4;
 }
 
-/* Rubriker i smal, tung kursiv, som siffror på en tävlingsnapp. */
+/* Rubriker i smal, tung tekno-stil. */
 h1,
 h2,
-.workout .name {
-  font-stretch: 72%;
-  font-weight: 850;
+.workout .name,
+.pepwords .word,
+.tabs a,
+.run .start {
+  font-family: var(--display);
+  font-stretch: 80%;
+  font-weight: 800;
   line-height: 1.05;
-}
-
-h1 {
-  font-style: italic;
 }
 
 :focus-visible {
@@ -96,8 +98,6 @@ h1 {
   border-bottom: 4px solid transparent;
   color: var(--muted);
   font-size: 22px;
-  font-stretch: 80%;
-  font-weight: 800;
   text-decoration: none;
 }
 
@@ -210,7 +210,7 @@ h1 {
 }
 
 .workout .info {
-  flex: 1 1 200px;
+  flex: 1 1 280px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -219,7 +219,7 @@ h1 {
 }
 
 .workout .name {
-  font-size: 30px;
+  font-size: 28px;
 }
 
 .workout .time {
@@ -294,9 +294,6 @@ h1 {
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 26px;
-  font-stretch: 72%;
-  font-style: italic;
-  font-weight: 850;
 }
 
 /* Fälten är mörka med ljus kant, som knapparna. */
@@ -563,9 +560,6 @@ h1 {
   padding: 0.15em 0.7em;
   background: var(--rod);
   font-size: calc(5 * var(--u));
-  font-stretch: 75%;
-  font-style: italic;
-  font-weight: 850;
   transform: skewX(-8deg);
 }
 
@@ -642,39 +636,79 @@ h1 {
   flex: 1 1 auto;
 }
 
-/* Blockets namn, procenten och nedräkningen i smal tung stil, så att siffrorna blir höga utan att ta bredd. */
+/* Blockets namn, procenten och nedräkningen i smal tung tekno-stil, så att siffrorna blir höga utan att ta bredd. */
 .run .name,
 .run .pct,
 .run .remaining,
 .run .countdown,
 .run .banner-name,
 .run .pepword,
-.run .paused {
-  font-stretch: 72%;
-  font-weight: 850;
+.run .paused,
+.run .quit strong {
+  font-family: var(--display);
+  font-stretch: 78%;
+  font-weight: 800;
 }
 
 .run .name {
   font-size: calc(10 * var(--u));
-  font-style: italic;
+  letter-spacing: 0.01em;
 }
 
 .run .pctrow {
   font-size: calc(5 * var(--u));
 }
 
+/* Procenten lyser i zonens färg (--zone sätts av run.ts). */
 .run .pct {
+  display: inline-block;
   font-size: calc(17 * var(--u));
   line-height: 1;
+  text-shadow: 0 0 0.04em #000, 0 0 0.12em #000, 0 0 0.45em var(--zone, transparent);
 }
 
 .run .next {
   font-size: calc(5.5 * var(--u));
 }
 
+/* Klockan tonar från vitt till laxrosa, som tridräkten. Skuggan är ett filter, eftersom en textskugga
+   skulle synas genom den genomskinliga fyllningen. */
 .run .remaining {
   font-size: calc(28 * var(--u));
   line-height: 0.95;
+  background: linear-gradient(180deg, #ffffff 35%, var(--laxrosa) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 0.03em #000) drop-shadow(0 0 0.1em #000);
+}
+
+/* Procenten och klockan studsar lite på varje slag i musiken (klassen pulse sätts av run.ts). */
+.run .pct,
+.run .remaining {
+  transition: transform 260ms ease-out;
+}
+
+.run .pct {
+  transform-origin: left bottom;
+}
+
+.run .remaining {
+  transform-origin: right bottom;
+}
+
+.run .current.pulse .pct,
+.run .current.pulse .remaining {
+  transform: scale(1.04);
+  transition-duration: 50ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run .current.pulse .pct,
+  .run .current.pulse .remaining {
+    transform: none;
+  }
 }
 
 .run[data-mode='live'] .chart {
@@ -701,9 +735,7 @@ h1 {
   padding: 1vh 2vw;
 }
 
-/* Klockorna har ett rött streck till vänster, som en startnummerlapp. */
 .run[data-mode='live'] .current {
-  border-left: 1vh solid var(--rod);
   text-shadow: 0 0 0.06em #000, 0 0 0.2em #000, 0 0 0.5em #000c;
 }
 
@@ -746,8 +778,11 @@ h1 {
 
 .run .banner-name {
   font-size: calc(14 * var(--u));
-  font-style: italic;
   line-height: 1;
+  background: linear-gradient(180deg, #ffffff 40%, var(--laxrosa) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .run .banner p:last-child {
@@ -778,7 +813,6 @@ h1 {
 /* Pepporden står på en röd, lutande remsa. */
 .run .pepword {
   font-size: calc(13 * var(--u));
-  font-style: italic;
   line-height: 1.1;
   border-radius: 0;
   background: #d7192df2;
@@ -802,9 +836,6 @@ h1 {
 .run .quit strong {
   display: block;
   font-size: calc(9 * var(--u));
-  font-stretch: 72%;
-  font-style: italic;
-  font-weight: 850;
 }
 
 .run .fullscreen-hint {

@@ -188,6 +188,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     // Fylld prick för mikrofonen och tom ring för den interna takten, så att läget syns utan att läsa texten.
     if (f.beat) litUntil = t + 120
     beatDot.classList.toggle('on', t < litUntil)
+    current.classList.toggle('pulse', t < litUntil && clock.running) // procenten och klockan studsar i takt
     beatDot.classList.toggle('ring', f.mode === 'intern')
     put(beatMode, (f.mode === 'mic' ? 'Mikrofon' : 'Intern takt') + (stage && !stage.broken && !animOn ? ' · Animationer av' : ''))
   }
@@ -228,7 +229,9 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     put(totalText, `Total tid ${mmss(Math.floor(pos / 1000))} av ${mmss(total)}`)
     put(blockName, seg.name)
     put(pct, `${shownPct} %`)
-    pct.style.color = zoneFor(shownPct).textColor
+    const zone = zoneFor(shownPct)
+    pct.style.color = zone.textColor
+    pct.style.setProperty('--zone', zone.color)
     put(next, nextSeg ? `Nästa: ${nextSeg.name} · ${mmss(nextSeg.durationSec)} · ${pctText(nextSeg.fromPct, nextSeg.toPct)}` : 'Sista blocket')
     put(remaining, mmss(Math.ceil(at.remainingMs / 1000)))
     live.chart.setPlayhead(pos / 1000)
