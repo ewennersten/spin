@@ -10,8 +10,8 @@ it('godkänner ett giltigt pass', () => {
   expect(validateWorkout(workout([])).ok).toBe(true)
 })
 it('avvisar värden utanför gränserna', () => {
-  expect(err(workout([block({ fromPct: 19 })]))).toContain('20 och 200')
-  expect(err(workout([block({ toPct: 201 })]))).toContain('20 och 200')
+  expect(err(workout([block({ fromPct: 19 })]))).toContain('20 och 300')
+  expect(err(workout([block({ toPct: 301 })]))).toContain('20 och 300')
   expect(err(workout([block({ durationSec: 4 })]))).toContain('5 sekunder')
   expect(err(workout([block({ durationSec: 10801 })]))).toContain('3 timmar')
   expect(err(workout([{ kind: 'group', id: 'g', repeat: 0, blocks: [block()] }]))).toContain('1 och 50')
@@ -30,8 +30,8 @@ it('pekar ut vilket block som är fel', () => {
 })
 
 it('pekar ut block inuti en grupp', () => {
-  expect(err(workout([block(), { kind: 'group', id: 'g', repeat: 2, blocks: [block({ toPct: 300 })] }])))
-    .toBe('Grupp 2, block 1: procent måste vara mellan 20 och 200')
+  expect(err(workout([block(), { kind: 'group', id: 'g', repeat: 2, blocks: [block({ toPct: 301 })] }])))
+    .toBe('Grupp 2, block 1: procent måste vara mellan 20 och 300')
 })
 it('sätter saknad updatedAt till 0 och tar bara med kända fält', () => {
   expect(validateWorkout({ id: 'w', name: 'Pass', items: [block({ extra: 1 })], extra: 1 }))

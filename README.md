@@ -109,19 +109,19 @@ Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällt
 
 ## Animationerna
 
-Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Passets namn och totaltiden, blockets namn, procenten, klockan och stapelbilden står direkt på animationen, texten med en mörk skugga runt bokstäverna. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Det finns sju scener: en tunnel av sexkantiga ringar, ett rutnätslandskap, en virvel av partiklar, en ring av staplar, ett klot av trådnät som böljer med basen, en flock lysande fåglar som flyger fortare ju hårdare ni kör, och ett kalejdoskop som strömmar ut från mitten. Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Passets namn och totaltiden, blockets namn, procenten, klockan och stapelbilden står direkt på animationen, texten med en mörk skugga runt bokstäverna. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
 
 Under nedräkningen de sista fem sekunderna står siffran stort mitt på skärmen, och klockorna tonas ned. När ett hårt block (från 76 % av FTP och minst 15 sekunder långt) har körts klart smäller ett fyrverkeri i skärmens övre del, och ett ord som "Starkt jobbat!" poppar fram. Hoppar du förbi blocket med pilarna blir det inget fyrverkeri.
 
-Staplarna är frostat glas som lyser starkast nere vid golvet och speglas suddigt i ett blankt golv. Stapeln som pågår lyser i zonens färg, och ljuset i dess botten slår i takt med musiken. Var 20:e sekund sveper ett svagt, snett ljussken över staplarna. A och minskade rörelser stänger av ljusskenet.
+Staplarna är frostat glas som lyser starkast nere vid golvet. På startskärmen och i biblioteket speglas de suddigt i ett blankt golv; under passet står de i stället ända nere vid skärmens kant. Skalan går till lite över passets högsta procent (8 % över, uppåt till jämna 5), så att de högsta staplarna fyller bilden. Stapeln som pågår lyser i zonens färg, och ljuset i dess botten slår i takt med musiken. Var 20:e sekund sveper ett svagt, snett ljussken över staplarna. A och minskade rörelser stänger av ljusskenet.
 
-Ljuset är begränsat: bilden blir aldrig ljusare än en femtedel av helvitt i snitt, ljusnar bara långsamt och blinkar högst 2,5 gånger per sekund. Är någon i salen ljuskänslig: tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, och fyrverkeriet uteblir (ordet visas ändå). I överblicken står det **Animationer: av**. Valet sparas tills du trycker A igen.
+Pulsen blinkar högst 2,5 gånger per sekund. **Ljusspärren** i överblicken, under mikrofonpanelen, gör dessutom att 3D-bilden aldrig blir ljusare än en femtedel av helvitt i snitt och bara ljusnar långsamt. Den är avstängd från början, och valet sparas. Slås den på mitt i ett pass tonar bilden ned och sedan upp igen. Är någon i salen ljuskänslig: slå på ljusspärren, eller tryck **A**, gärna redan i överblicken före start. Då står bara en stilla mörk bakgrund kvar, och fyrverkeriet uteblir (ordet visas ändå). I överblicken står det **Animationer: av**. Valet sparas tills du trycker A igen.
 
 Saknar datorn stöd för 3D-grafik (WebGL), eller tappas den mitt i passet, fortsätter skärmen som vanligt utan animationer.
 
 För utveckling finns två lägen i adressen:
 
-- `?scen=N` visar bara scen N (från 1), till exempel `http://localhost:5173/?scen=1#/run/exempel-vo2max`.
+- `?scen=N` visar bara scen N (från 1), till exempel `http://localhost:5173/?scen=1#/run/exempel-vo2max`. Scenerna är 1 tunneln, 2 rutnätet, 3 partikelsvärmen, 4 ringen, 5 klotet, 6 flocken och 7 kalejdoskopet.
 - `?ljus=1` visar en mätruta nere till vänster med bildens medelljus, största stigningen under 400 ms, bilder per sekund och kvalitetsnivå.
 
 ## Prova takten i salen
@@ -135,7 +135,7 @@ Ta med det här till salen och bocka av:
 - [ ] Missar lampan slag: höj basbandets övre gräns, till exempel från 150 till 200 eller 250 Hz, och tryck Enter. Laptopens mikrofon hör ofta den djupaste basen dåligt.
 - [ ] Prova medan instruktören pratar. Blinkar lampan på rösten i stället för på trumman?
 - [ ] Anteckna vilken musik det fungerade med och vilken det inte fungerade med, och vilka värden för känslighet, basband och synk som var bäst.
-- [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt.
+- [ ] Animationerna bländar inte, inte heller i intervallerna med salen släckt. Gör de det: slå på ljusspärren.
 - [ ] Klockorna går att läsa från den bakersta cykeln medan animationen går.
 - [ ] A stänger av animationerna, och i överblicken står det **Animationer: av**.
 - [ ] Fyrverkeriet efter ett hårt block bländar inte, och nedräkningens siffror går att läsa framför animationen.

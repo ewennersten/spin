@@ -5,13 +5,19 @@ import { zoneFor } from '../model/zones'
 export interface Shape { points: string; fromColor: string; toColor: string }
 export interface Chart { setPlayhead(posSec: number | null): void }
 
-// Procenten som bildens övre kant motsvarar.
-const scaleTop = (segments: Segment[]) => Math.max(120, ...segments.flatMap(s => [s.fromPct, s.toPct]))
+// Procenten som bildens övre kant motsvarar: lite över passets högsta procent (8 %, uppåt till jämna 5),
+// så att de högsta staplarna fyller bilden. Ett tomt pass får 100.
+export function scaleTop(segments: Segment[]): number {
+  if (!segments.length) return 100
+  return Math.ceil((Math.max(...segments.flatMap(s => [s.fromPct, s.toPct])) * 1.08) / 5) * 5
+}
 
-// Skalsteg var 25:e procent. Steget i toppen hoppas över, så att etiketten inte klipps vid övre kanten.
+// Skalsteg var 25:e procent, och var 50:e när skalan går över 200, så att etiketterna inte trängs.
+// Steget i toppen hoppas över, så att etiketten inte klipps vid övre kanten.
 export function scaleTicks(top: number): number[] {
+  const step = top > 200 ? 50 : 25
   const ticks = []
-  for (let t = 25; t < top; t += 25) ticks.push(t)
+  for (let t = step; t < top; t += step) ticks.push(t)
   return ticks
 }
 
@@ -57,9 +63,11 @@ export function chartFrame(svg: SVGSVGElement): { frame: HTMLElement; scale: HTM
 }
 
 // Med scale ritas linjer var 25:e procent i bilden och etiketterna i scale, som står bredvid bilden (se chartFrame).
-export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement): Chart {
+// mirror: false tar bort spegelgolvet, så att staplarna står ända nere vid bildens underkant (passkärmen).
+export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTMLElement, { mirror: withFloor = true } = {}): Chart {
+  const floor = withFloor ? FLOOR : 0
   svg.replaceChildren()
-  svg.setAttribute('viewBox', `0 0 ${W} ${H + FLOOR}`)
+  svg.setAttribute('viewBox', `0 0 ${W} ${H + floor}`)
   svg.setAttribute('preserveAspectRatio', 'none')
 
   const chartId = nextChartId++
@@ -88,7 +96,7 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
   const reflection = el('g', { mask: `url(#${id('fade')})` })
   const mirror = el('g', { filter: `url(#${id('blur')})` })
   reflection.append(mirror)
-  svg.append(reflection, el('line', { x1: 0, y1: H, x2: W, y2: H, stroke: '#ffffff', 'stroke-opacity': 0.3, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
+  if (withFloor) svg.append(reflection, el('line', { x1: 0, y1: H, x2: W, y2: H, stroke: '#ffffff', 'stroke-opacity': 0.3, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
   // Det avklarade mörknar bara på staplarna och speglingen, så att bakgrunden bakom bilden (under passet animationen) syns orörd.
   const clipId = id('bars')
   const clip = el('clipPath', { id: clipId })
@@ -122,7 +130,7 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
   // Ett snett ljussken sveper över glaset då och då (se styles.css).
   const sweep = el('g', { 'clip-path': `url(#${clipId})` })
   const skew = el('g', { transform: 'skewX(-22)' })
-  skew.append(el('rect', { class: 'sweep', x: 0, y: 0, width: 70, height: H + FLOOR, fill: grad('sweep', { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, '#ffffff', 0], [0.5, '#ffffff', 0.22], [1, '#ffffff', 0]]) }))
+  skew.append(el('rect', { class: 'sweep', x: 0, y: 0, width: 70, height: H + floor, fill: grad('sweep', { x1: 0, y1: 0, x2: 1, y2: 0 }, [[0, '#ffffff', 0], [0.5, '#ffffff', 0.22], [1, '#ffffff', 0]]) }))
   sweep.append(skew)
   svg.append(sweep)
 
@@ -135,13 +143,13 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       svg.append(el('line', { x1: 0, y1: y, x2: W, y2: y, stroke: '#fff6f4', 'stroke-opacity': t === 100 ? 0.6 : 0.22, 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke' }))
       const label = document.createElement('span')
       label.textContent = `${t} %`
-      label.style.top = `${y / (H + FLOOR) * 100}%`
+      label.style.top = `${y / (H + floor) * 100}%`
       if (t === 100) label.className = 'ftp'
       return label
     }))
   }
 
-  const dim = el('rect', { x: 0, y: 0, width: 0, height: H + FLOOR, fill: '#000000', opacity: 0.6, display: 'none', 'clip-path': `url(#${clipId})` })
+  const dim = el('rect', { x: 0, y: 0, width: 0, height: H + floor, fill: '#000000', opacity: 0.6, display: 'none', 'clip-path': `url(#${clipId})` })
   const line = el('line', { x1: 0, y1: 0, x2: 0, y2: H, stroke: '#fff6f4', 'stroke-width': 4, display: 'none' })
   svg.append(dim, line)
 

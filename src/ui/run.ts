@@ -33,13 +33,13 @@ const CHEERS = ['Starkt jobbat!', 'Grymt kört!', 'Snyggt!', 'Vilken kraft!', 'N
 // Texten skrivs bara när den ändras, så att varje bildruta inte skriver om sidan.
 const put = (e: HTMLElement, text: string) => { if (e.textContent !== text) e.textContent = text }
 
-function bars(w: Workout, segments: Segment[]) {
+function bars(w: Workout, segments: Segment[], mirror = true) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.setAttribute('role', 'img')
   svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
   const { frame, scale } = chartFrame(svg)
   frame.classList.add('chart')
-  return { node: frame, chart: renderChart(svg, segments, scale) }
+  return { node: frame, chart: renderChart(svg, segments, scale, { mirror }) }
 }
 
 function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): () => void {
@@ -89,7 +89,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let lastCheer = ''
   let calmZone = true // vila, uppvärmning och nedvarvning (zonerna Vila och Lugnt) pulserar inte
 
-  const live = bars(w, segments)
+  const live = bars(w, segments, false) // under passet står staplarna nere vid kanten, utan spegelgolv
   // Orden och siffrorna i total tid har olika stil (se .top .total i styles.css), så att de inte flyter ihop.
   const elapsedText = el('span', { className: 'num' })
   const totalText = el('p', { className: 'total' })
@@ -133,6 +133,15 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   const quit = el('p', { className: 'quit', role: 'alert', hidden: true })
   quit.append(el('strong', { textContent: 'Avsluta passet?' }), ' Enter avslutar, R börjar om från början, valfri annan tangent fortsätter')
   const animLine = el('p', { className: 'label', hidden: true })
+  // Ljusspärren håller 3D-bilden mörk och låter den bara ljusna långsamt, för den som är ljuskänslig. Av från början.
+  const lightSwitch = el('input', { type: 'checkbox', role: 'switch' })
+  const lightLine = el('label', { className: 'label switch', hidden: true })
+  lightLine.append(lightSwitch, 'Ljusspärr: håller bilden mörk och låter den bara ljusna långsamt')
+  lightSwitch.onchange = () => {
+    lightSwitch.blur() // så att mellanslag direkt efteråt startar passet
+    stage?.setLightLimit(lightSwitch.checked)
+    store.saveLightLimitOn(lightSwitch.checked).catch(e => { status.textContent = `Valet för ljusspärren sparades inte: ${message(e)}` })
+  }
 
   function show(m: typeof mode, ...children: Node[]) {
     mode = m
@@ -153,7 +162,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     const left = el('div', { className: 'overview-left' })
     left.append(list, startRow)
     const right = el('div', { className: 'overview-right' })
-    right.append(panel, animLine)
+    right.append(panel, animLine, lightLine)
     const row = el('div', { className: 'overview-row' })
     row.append(left, right)
     show('overview', logo(), el('h1', { textContent: w.name }), el('p', { className: 'total', textContent: `Total tid ${mmss(total)}` }),
@@ -211,7 +220,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     main.classList.toggle('still', !animOn) // stänger av ljusskenet över staplarna (se styles.css)
     if (mode === 'overview') {
       // Det sparade valet läses in efter att vyn har öppnats, så raden skrivs varje bildruta (put skriver bara ändringar).
-      animLine.hidden = !stage || stage.broken
+      animLine.hidden = lightLine.hidden = !stage || stage.broken
       put(animLine, animOn ? 'Animationer: på (A stänger av)' : 'Animationer: av (A sätter på)')
     }
     const at = mode === 'live' ? draw(t) : undefined
@@ -406,6 +415,7 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
 
   store.getMicSettings().then(s => { source.detector.sensitivity = s.sensitivity; source.leadMs = s.leadMs }).catch(() => {})
   store.getAnimationsOn().then(on => { animOn = on }).catch(() => {})
+  store.getLightLimitOn().then(on => { lightSwitch.checked = on; stage?.setLightLimit(on) }).catch(() => {})
   // Även efter en omladdning mitt i passet, då panelen med knappen inte visas.
   Promise.resolve()
     .then(() => navigator.permissions.query({ name: 'microphone' }))

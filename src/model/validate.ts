@@ -1,6 +1,6 @@
 import type { Block, Group, Item, Workout } from './types'
 
-export const LIMITS = { pctMin: 20, pctMax: 200, durMinSec: 5, durMaxSec: 10800, repeatMin: 1, repeatMax: 50, nameMax: 80 }
+export const LIMITS = { pctMin: 20, pctMax: 300, durMinSec: 5, durMaxSec: 10800, repeatMin: 1, repeatMax: 50, nameMax: 80 }
 export type Validation = { ok: true; workout: Workout } | { ok: false; error: string }
 
 type Obj = Record<string, unknown>

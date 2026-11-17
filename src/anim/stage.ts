@@ -16,7 +16,8 @@ import type { Scene } from './scenes/scene'
 export interface StageFrame { pctNow: number; running: boolean; blockIndex: number; beat: BeatFrame; nowMs: number }
 export interface StageOptions { forcedScene: number | null; lightMeter: boolean }
 // broken: scenen har dolts för resten av vyn (tappad kontext, omätt ljus eller ett fel i frame).
-export interface Stage { readonly broken: boolean; frame(f: StageFrame): void; setVisible(on: boolean): void; dispose(): void }
+// setLightLimit slår på och av ljusspärren (LightGovernor). Den är avstängd tills den slås på.
+export interface Stage { readonly broken: boolean; frame(f: StageFrame): void; setVisible(on: boolean): void; setLightLimit(on: boolean): void; dispose(): void }
 
 const FADE_MS = 600
 const METER_W = 16
@@ -107,6 +108,7 @@ export function createStage(options: StageOptions): Stage | null {
   const pulse = new BeatPulse()
   const bands = new BandLevels()
   let governor = new LightGovernor()
+  let limitOn = false
   const quality = new QualityController()
 
   let current: Scene | null = null
@@ -280,8 +282,8 @@ export function createStage(options: StageOptions): Stage | null {
     const measured = sum / 255 / (METER_W * METER_H)
     if (ok) {
       unmeasured = 0
-      gain = governor.update(measured * fade, dtMs)
-    } else if (++unmeasured >= 3) {
+      gain = limitOn ? governor.update(measured * fade, dtMs) : 1
+    } else if (limitOn && ++unmeasured >= 3) {
       // Utan mätning finns ingen spärr: dölj för resten av vyn, som vid tappad kontext.
       onLost()
       return
@@ -323,6 +325,11 @@ export function createStage(options: StageOptions): Stage | null {
         dead = true
         show(false)
       }
+    },
+    setLightLimit(on) {
+      // Slås spärren på mitt i passet tonar bilden ned och sedan upp igen under spärren.
+      if (on && !limitOn) governor = new LightGovernor()
+      limitOn = on
     },
     setVisible(on) {
       if (!on) {

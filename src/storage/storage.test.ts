@@ -115,3 +115,13 @@ it('sparar och läser peppord och mikrofon, och faller tillbaka på standard vid
   expect(await s.getPepWords()).toHaveLength(8)
   expect(await s.getMicSettings()).toEqual({ sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 })
 })
+
+it('har ljusspärren avstängd från början och sparar valet', async () => {
+  const kv = fakeKV()
+  const s = createStorage(kv)
+  expect(await s.getLightLimitOn()).toBe(false)
+  await s.saveLightLimitOn(true)
+  expect(await s.getLightLimitOn()).toBe(true)
+  kv.data.set('spinning.lightlimit.v1', '"ja"')
+  expect(await s.getLightLimitOn()).toBe(false)
+})

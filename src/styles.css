@@ -1333,3 +1333,50 @@ h2,
   background: var(--rod);
   box-shadow: 0 0 0 0.15em var(--text);
 }
+
+/* Ljusspärrens reglage i överblicken: en liten skjutknapp som lyser röd när spärren är på. */
+.run .switch {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  cursor: pointer;
+}
+
+.run .switch input {
+  appearance: none;
+  flex: none;
+  position: relative;
+  font-size: inherit; /* annars mäts em mot fältets egen, lilla textstorlek */
+  width: 1.9em;
+  height: 1em;
+  margin: 0;
+  border-radius: 1em;
+  background: #ffffff26;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.run .switch input::after {
+  content: '';
+  position: absolute;
+  top: 0.12em;
+  left: 0.12em;
+  width: 0.76em;
+  height: 0.76em;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 150ms;
+}
+
+.run .switch input:checked {
+  background: var(--rod);
+}
+
+.run .switch input:checked::after {
+  transform: translateX(0.9em);
+}
+
+.run .switch input:focus-visible {
+  outline: 3px solid var(--laxrosa);
+  outline-offset: 2px;
+}

@@ -1,23 +1,32 @@
 import { expect, it } from 'vitest'
 import type { Segment } from '../model/types'
-import { chartShapes, scaleTicks } from './chart'
+import { chartShapes, scaleTicks, scaleTop } from './chart'
 
-it('ger skalsteg var 25:e procent under bildens topp', () => {
+it('ger skalsteg var 25:e procent under bildens topp, och var 50:e över 200', () => {
   expect(scaleTicks(120)).toEqual([25, 50, 75, 100])
   expect(scaleTicks(150)).toEqual([25, 50, 75, 100, 125])
   expect(scaleTicks(200)).toEqual([25, 50, 75, 100, 125, 150, 175])
+  expect(scaleTicks(325)).toEqual([50, 100, 150, 200, 250, 300])
 })
 
-it('räknar ut formerna', () => {
-  const one: Segment[] = [{ name: 'A', startSec: 0, durationSec: 60, fromPct: 60, toPct: 120 }]
-  expect(chartShapes(one, 1000, 200)).toEqual([{ points: '1,200 1,100 999,0 999,200', fromColor: '#378ADD', toColor: '#E24B4A' }])
+const at = (pct: number): Segment[] => [{ name: 'A', startSec: 0, durationSec: 60, fromPct: 50, toPct: pct }]
+it('lägger skalans topp lite över passets högsta procent', () => {
+  expect(scaleTop(at(115))).toBe(125)
+  expect(scaleTop(at(110))).toBe(120)
+  expect(scaleTop(at(70))).toBe(80)
+  expect(scaleTop(at(230))).toBe(250)
+  expect(scaleTop([])).toBe(100)
 })
-it('delar bredden efter tid och höjer skalan över 120', () => {
+it('räknar ut formerna', () => {
+  const one: Segment[] = [{ name: 'A', startSec: 0, durationSec: 60, fromPct: 62.5, toPct: 115 }] // toppen 125
+  expect(chartShapes(one, 1000, 200)).toEqual([{ points: '1,200 1,100 999,16 999,200', fromColor: '#378ADD', toColor: '#E24B4A' }])
+})
+it('delar bredden efter tid', () => {
   const two: Segment[] = [
-    { name: 'A', startSec: 0, durationSec: 30, fromPct: 150, toPct: 150 },
-    { name: 'B', startSec: 30, durationSec: 90, fromPct: 75, toPct: 75 },
+    { name: 'A', startSec: 0, durationSec: 30, fromPct: 230, toPct: 230 }, // toppen 250
+    { name: 'B', startSec: 30, durationSec: 90, fromPct: 125, toPct: 125 },
   ]
-  expect(chartShapes(two, 1000, 200).map(s => s.points)).toEqual(['1,200 1,0 249,0 249,200', '251,200 251,100 999,100 999,200'])
+  expect(chartShapes(two, 1000, 200).map(s => s.points)).toEqual(['1,200 1,16 249,16 249,200', '251,200 251,100 999,100 999,200'])
 })
 it('klarar ett tomt pass', () => {
   expect(chartShapes([], 1000, 200)).toEqual([])

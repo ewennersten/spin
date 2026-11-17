@@ -38,9 +38,9 @@ it('lägger kopian av ett block direkt efter och ändrar inte originallistan', (
   expect(out[2]).toBe(list[1])
 })
 it('godkänner bara heltal inom gränserna i procent och upprepningar', () => {
-  expect(fieldError('from', 200)).toBeNull()
-  expect(fieldError('from', 300)).toBe('Från % måste vara ett heltal mellan 20 och 200')
-  expect(fieldError('to', 19)).toBe('Till % måste vara ett heltal mellan 20 och 200')
+  expect(fieldError('from', 300)).toBeNull()
+  expect(fieldError('from', 301)).toBe('Från % måste vara ett heltal mellan 20 och 300')
+  expect(fieldError('to', 19)).toBe('Till % måste vara ett heltal mellan 20 och 300')
   expect(fieldError('to', NaN)).not.toBeNull() // tomt fält
   expect(fieldError('from', 55.5)).not.toBeNull()
   expect(fieldError('repeat', 50)).toBeNull()
@@ -70,7 +70,7 @@ it('kräver namn på passet men inte på blocken, och högst 80 tecken', () => {
   expect(nameError('x'.repeat(81), false)).toBe('Namnet får vara högst 80 tecken')
 })
 it('släpper bara igenom värden som validateWorkout också godkänner', () => {
-  const edges = [[0, 5, 20, 200], [180, 0, 200, 20]]
+  const edges = [[0, 5, 20, 300], [180, 0, 300, 20]]
   for (const [min, sec, from, to] of edges) {
     expect([fieldError('min', min), fieldError('sec', sec), durationError(min, sec), fieldError('from', from), fieldError('to', to)]).toEqual([null, null, null, null, null])
     const block = { ...newBlock(), name: 'x'.repeat(80), durationSec: min * 60 + sec, fromPct: from, toPct: to }

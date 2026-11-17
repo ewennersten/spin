@@ -17,12 +17,15 @@ export interface Store {
   saveMicSettings(s: MicSettings): Promise<void>
   getAnimationsOn(): Promise<boolean>              // standard true
   saveAnimationsOn(on: boolean): Promise<void>
+  getLightLimitOn(): Promise<boolean>              // standard false
+  saveLightLimitOn(on: boolean): Promise<void>
 }
 
 const WORKOUTS = 'spinning.workouts.v1'
 const PEPWORDS = 'spinning.pepwords.v1'
 const MIC = 'spinning.mic.v1'
 const ANIM = 'spinning.anim.v1'
+const LIGHT_LIMIT = 'spinning.lightlimit.v1'
 const PEP_DEFAULT = ['Kom igen!', 'Håll i!', 'Starkt!', 'Tryck på!', 'Ni äger det här!', 'Snart där!', 'Ge allt!', 'Bra jobbat!']
 const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 }
 
@@ -109,5 +112,7 @@ export function createStorage(kv: KV = window.localStorage): Store {
     async saveMicSettings(s) { kv.setItem(MIC, JSON.stringify(s)) },
     async getAnimationsOn() { return readSetting(ANIM, true, v => typeof v === 'boolean') },
     async saveAnimationsOn(on) { kv.setItem(ANIM, JSON.stringify(on)) },
+    async getLightLimitOn() { return readSetting(LIGHT_LIMIT, false, v => typeof v === 'boolean') },
+    async saveLightLimitOn(on) { kv.setItem(LIGHT_LIMIT, JSON.stringify(on)) },
   }
 }
