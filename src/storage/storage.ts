@@ -1,3 +1,4 @@
+import type { ClockState } from '../clock/clock'
 import { EXAMPLES } from '../model/examples'
 import type { MicSettings, Workout } from '../model/types'
 import { validateWorkout } from '../model/validate'
@@ -19,6 +20,8 @@ export interface Store {
   saveAnimationsOn(on: boolean): Promise<void>
   getLightLimitOn(): Promise<boolean>              // standard false
   saveLightLimitOn(on: boolean): Promise<void>
+  // Delar passet som pågår med följvyn på mobilen; null när inget pass pågår. Finns bara med Supabase.
+  shareRun?(workoutId: string | null, clock: ClockState | null): Promise<void>
 }
 
 const WORKOUTS = 'spinning.workouts.v1'

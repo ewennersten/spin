@@ -1740,3 +1740,56 @@ h2,
   margin-top: 32px;
   color: var(--muted);
 }
+
+/* Följvyn på mobilen: samma uppgifter som passvyn, utan animationer, i en smal spalt. */
+.follow {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+.follow h1 {
+  margin: 8px 0 4px;
+  font-size: clamp(26px, 7vw, 40px);
+}
+.follow .total,
+.follow .label,
+.follow .next {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.follow .current {
+  margin: 20px 0;
+  padding: 18px 16px;
+  border-radius: 12px;
+  background: var(--natt);
+  border-left: 0;
+  box-shadow: inset 0 0 0 2px var(--zone, #ffffff40);
+}
+.follow .current p {
+  margin: 0;
+}
+.follow .name {
+  font-family: var(--display);
+  font-size: clamp(24px, 7vw, 36px);
+}
+.follow .pct {
+  color: var(--zone-light, var(--text));
+  font-size: 22px;
+  font-weight: 700;
+}
+.follow .remaining {
+  font-family: var(--display);
+  font-size: clamp(72px, 26vw, 140px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--zone-light, var(--text));
+}
+.follow .state {
+  color: var(--muted);
+}
+.follow .chart {
+  margin: 16px 0;
+}
+.follow .status {
+  color: var(--laxrosa);
+}

@@ -130,7 +130,8 @@ export function libraryView(store: Store, account?: Account): View {
     main.append(el('h2', { textContent: 'Dina pass' }), toolbar, status, list)
     if (account) {
       const who = el('p', { className: 'account', textContent: `Inloggad som ${account.email} ` })
-      who.append(account.logout)
+      // Följvyn öppnas på mobilen och visar passet som pågår på datorn.
+      who.append(account.logout, ' ', Object.assign(el('a', { textContent: 'Följ passet på mobilen', href: '#/folj' }), { className: 'button' }))
       main.append(who)
     }
     root.append(clubHeader('Torsdagsspinning', 'pass'), main)

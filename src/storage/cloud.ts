@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ClockState } from '../clock/clock'
 import type { Workout } from '../model/types'
 import { validateWorkout } from '../model/validate'
 import { parseImport, type Store } from './storage'
@@ -69,4 +70,44 @@ export async function uploadLocalOnce(rows: WorkoutRows, local: Store, userId: s
   if (local.kv.getItem(key)) return
   if (!(await rows.list()).length) await rows.upsert(await local.listWorkouts())
   local.kv.setItem(key, '1')
+}
+
+// Passet som pågår på datorn i salen, för följvyn på mobilen.
+export interface LiveRun { workoutId: string; clock: ClockState }
+
+// Raden kommer från servern, så den kontrolleras innan mobilen räknar med den. Inget pass ger null.
+export function toLiveRun(row: unknown): LiveRun | null {
+  const r = row as { workout_id?: unknown; clock?: Partial<ClockState> } | null
+  const c = r?.clock
+  if (typeof r?.workout_id !== 'string' || typeof c?.running !== 'boolean' || !Number.isFinite(c.anchorMs) || !Number.isFinite(c.posAtAnchorMs)) return null
+  return { workoutId: r.workout_id, clock: { running: c.running, anchorMs: c.anchorMs!, posAtAnchorMs: c.posAtAnchorMs! } }
+}
+
+export interface Live {
+  share(workoutId: string | null, clock: ClockState | null): Promise<void>
+  get(): Promise<LiveRun | null>
+  // onChange får varje ändring; onConnect anropas när förbindelsen är uppe, så att följvyn kan hämta läget som
+  // kan ha ändrats medan den var nere. Returnerar en funktion som stänger förbindelsen.
+  subscribe(onChange: (run: LiveRun | null) => void, onConnect: () => void): () => void
+}
+
+export function supabaseLive(client: SupabaseClient, userId: string): Live {
+  const table = () => client.from('live_runs')
+  return {
+    async share(workoutId, clock) {
+      const { error } = await table().upsert({ user_id: userId, workout_id: workoutId, clock, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      fail(error)
+    },
+    async get() {
+      const { data, error } = await table().select('workout_id, clock').eq('user_id', userId).maybeSingle()
+      fail(error)
+      return toLiveRun(data)
+    },
+    subscribe(onChange, onConnect) {
+      const channel = client.channel(`live_runs:${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'live_runs', filter: `user_id=eq.${userId}` }, p => onChange(toLiveRun(p.new)))
+        .subscribe(s => { if (s === 'SUBSCRIBED') onConnect() })
+      return () => { void client.removeChannel(channel) }
+    },
+  }
 }

@@ -15,7 +15,7 @@ import type { Block, Item, Segment, Workout } from '../model/types'
 import { zoneFor } from '../model/zones'
 import type { View } from '../router'
 import type { Store } from '../storage/storage'
-import { chartFrame, renderChart } from './chart'
+import { bars } from './chart'
 import { bannerVisible, buildupLevel, celebrates, countdownNumber, decodedLetters, jumped, pepAllowed, pepIntervalSec, pickPepAnim, type PepAnim } from './cues'
 import { el, link, logo, message, sports } from './dom'
 import { mountMicPanel } from './micPanel'
@@ -36,15 +36,6 @@ const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ0123456789#%&*?!' // tecknen som
 
 // Texten skrivs bara när den ändras, så att varje bildruta inte skriver om sidan.
 const put = (e: HTMLElement, text: string) => { if (e.textContent !== text) e.textContent = text }
-
-function bars(w: Workout, segments: Segment[], mirror = true) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('role', 'img')
-  svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
-  const { frame, scale, borg } = chartFrame(svg)
-  frame.classList.add('chart')
-  return { node: frame, chart: renderChart(svg, segments, scale, { mirror, borg }) }
-}
 
 function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): () => void {
   const segments = flatten(w)
@@ -265,8 +256,13 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
     } catch (e) {
       status.textContent = `Passläget sparades inte: ${message(e)}`
     }
+    store.shareRun?.(w.id, clock).catch(e => { status.textContent = `Följvyn på mobilen fick inte läget: ${message(e)}` })
   }
-  const forget = () => { if (!fast) clearRun(store.kv) }
+  const forget = () => {
+    if (fast) return
+    clearRun(store.kv)
+    store.shareRun?.(null, null).catch(() => {}) // utan nät står mobilen kvar på passet tills datorn når servern igen
+  }
 
   // Saknas stödet eller nekas begäran fortsätter passet utan vakenlås.
   function wake() {

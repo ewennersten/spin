@@ -1,5 +1,5 @@
 import { totalDuration } from '../model/flatten'
-import type { Segment } from '../model/types'
+import type { Segment, Workout } from '../model/types'
 import { zoneFor } from '../model/zones'
 
 export interface Shape { points: string; fromColor: string; toColor: string }
@@ -230,4 +230,14 @@ export function renderChart(svg: SVGSVGElement, segments: Segment[], scale?: HTM
       line.setAttribute('x2', lineX)
     },
   }
+}
+
+// Stapelbilden för ett pass, som i passvyn och följvyn.
+export function bars(w: Workout, segments: Segment[], mirror = true) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('role', 'img')
+  svg.setAttribute('aria-label', `Stapelbild för ${w.name}`)
+  const { frame, scale, borg } = chartFrame(svg)
+  frame.classList.add('chart')
+  return { node: frame, chart: renderChart(svg, segments, scale, { mirror, borg }) }
 }

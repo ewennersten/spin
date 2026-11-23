@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { EXAMPLES } from '../model/examples'
 import type { Workout } from '../model/types'
-import { createCloudStorage, fail, uploadLocalOnce, type WorkoutRows } from './cloud'
+import { createCloudStorage, fail, toLiveRun, uploadLocalOnce, type WorkoutRows } from './cloud'
 import { createStorage, type KV } from './storage'
 
 const fakeKV = (): KV => {
@@ -64,4 +64,12 @@ it('molnet: nätfel och serverfel ger svensk text', () => {
   expect(() => fail(null)).not.toThrow()
   expect(() => fail({ message: 'TypeError: Failed to fetch' })).toThrow('Ingen kontakt med servern')
   expect(() => fail({ message: 'permission denied' })).toThrow('Servern svarade med ett fel')
+})
+
+it('följvyn: läget från servern kontrolleras, och inget pass ger null', () => {
+  const clock = { running: true, anchorMs: 1000, posAtAnchorMs: 5000 }
+  expect(toLiveRun({ workout_id: 'p1', clock })).toEqual({ workoutId: 'p1', clock })
+  expect(toLiveRun({ workout_id: null, clock: null })).toBeNull()
+  expect(toLiveRun({ workout_id: 'p1', clock: { running: 'ja', anchorMs: 1, posAtAnchorMs: 2 } })).toBeNull()
+  expect(toLiveRun(null)).toBeNull()
 })
