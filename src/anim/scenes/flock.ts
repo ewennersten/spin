@@ -3,9 +3,10 @@ import type { SceneFactory } from './scene'
 
 export const MAX_BIRDS = 400
 const MIN_BIRDS = 80
-const SPACE = 9 // flocken hålls inom ett klot med den här radien
+const SPACE = 6 // flocken hålls inom ett klot med den här radien kring ledaren
+const HOME = 0.15 // hur hårt fåglarna dras mot ledaren
 const SEE = 4.5 // så långt en fågel ser sina grannar
-const NEAR = 0.9 // närmare än så håller fåglarna isär
+const NEAR = 1.8 // närmare än så håller fåglarna isär
 const lerp = THREE.MathUtils.lerp
 
 // Varje fågel är ett streck från huvudet bakåt längs farten. aEnd är 0 vid huvudet och 1 vid stjärten, som tonar ut.
@@ -20,8 +21,17 @@ const FRAGMENT = `uniform vec3 uColor; uniform float uGlow;
 varying float vEnd;
 void main() { gl_FragColor = vec4(uColor * (uGlow * (1.0 - 0.85 * vEnd)), 1.0); }`
 
+// Ledaren flyger i en åtta genom bilden, så att flocken sveper fram och tillbaka och sträcks ut i svängarna.
+const LEAD_X = 10
+const LEAD_Y = 5
+const LEAD_Z = 5
+function leaderAt(phase: number, out: THREE.Vector3): THREE.Vector3 {
+  return out.set(LEAD_X * Math.sin(phase), LEAD_Y * Math.sin(2 * phase), LEAD_Z * Math.cos(phase))
+}
+
 // En flock lysande streck som flyger tillsammans: varje fågel håller avstånd till de närmaste, flyger åt samma håll
-// som grannarna och dras mot dem. Farten följer intensiteten, och på pulsen sprids flocken och samlas igen.
+// som grannarna och dras mot dem. Alla dras mot en osynlig ledare som flyger i åttor, och farten följer intensiteten.
+// På pulsen sprids flocken från ledaren och samlas igen.
 // Idén kommer från fågelflocken bland three.js exempel (Craig Reynolds regler för flockar).
 export const flock: SceneFactory = () => {
   const scene = new THREE.Scene()
@@ -52,6 +62,8 @@ export const flock: SceneFactory = () => {
   let active = MAX_BIRDS
   geometry.setDrawRange(0, active * 2)
   let orbit = 0
+  let phase = 0
+  const lead = new THREE.Vector3()
   let color = ''
 
   return {
@@ -67,6 +79,9 @@ export const flock: SceneFactory = () => {
       const dt = Math.min(input.dtSec, 0.05) // en dold flik eller ett ryck ska inte kasta iväg flocken
       const speed = lerp(3 + 9 * i, 2, m)
       const scatter = lerp(14, 4, m) * input.pulse
+      // Ledaren går fortare vid hög intensitet; ett varv i åttan tar ungefär 25 s i vila och 8 s på max.
+      phase += lerp(0.35 + 0.45 * i, 0.25, m) * dt
+      leaderAt(phase, lead)
       for (let a = 0; a < active; a++) {
         const ax = pos[a * 3], ay = pos[a * 3 + 1], az = pos[a * 3 + 2]
         let sx = 0, sy = 0, sz = 0, vx = 0, vy = 0, vz = 0, cx = 0, cy = 0, cz = 0, seen = 0
@@ -86,13 +101,14 @@ export const flock: SceneFactory = () => {
           fy += 1.2 * (vy / seen - vel[a * 3 + 1]) + 0.8 * cy / seen
           fz += 1.2 * (vz / seen - vel[a * 3 + 2]) + 0.8 * cz / seen
         }
-        // Alla dras svagt mot mitten, så att småflockarna blir en enda stor; utanför klotet vänder de hem.
-        // På pulsen skjuts de utåt från mitten.
-        const r = Math.hypot(ax, ay, az) || 1
-        const home = 0.25 * r + (r > SPACE ? (r - SPACE) * 2 : 0)
-        fx += (scatter - home) * ax / r
-        fy += (scatter - home) * ay / r
-        fz += (scatter - home) * az / r
+        // Alla dras mot ledaren, så att småflockarna blir en enda stor som följer den; långt efter skyndar de ikapp.
+        // På pulsen skjuts de utåt från ledaren.
+        const lx = ax - lead.x, ly = ay - lead.y, lz = az - lead.z
+        const r = Math.hypot(lx, ly, lz) || 1
+        const home = HOME * r + (r > SPACE ? (r - SPACE) * 2 : 0)
+        fx += (scatter - home) * lx / r
+        fy += (scatter - home) * ly / r
+        fz += (scatter - home) * lz / r
         let nx = vel[a * 3] + fx * dt, ny = vel[a * 3 + 1] + fy * dt, nz = vel[a * 3 + 2] + fz * dt
         // Farten dras mot målfarten, så att flocken varken stannar eller rusar.
         const s = Math.hypot(nx, ny, nz) || 1
@@ -108,9 +124,9 @@ export const flock: SceneFactory = () => {
         lines.set([pos[o], pos[o + 1], pos[o + 2], pos[o] - vel[o] / s * tail, pos[o + 1] - vel[o + 1] / s * tail, pos[o + 2] - vel[o + 2] / s * tail], a * 6)
       }
       linePos.needsUpdate = true
-      // Kameran glider långsamt runt flocken.
+      // Kameran står framför åttan och gungar lätt, så att svepet alltid går tvärs över bilden.
       orbit += lerp(0.06 + 0.12 * i, 0.03, m) * input.dtSec
-      camera.position.set(20 * Math.sin(orbit), 3 * Math.sin(0.5 * orbit), 20 * Math.cos(orbit))
+      camera.position.set(4 * Math.sin(orbit), 2 * Math.sin(0.5 * orbit), 22)
       camera.lookAt(0, 0, 0)
       const lit = (x: number) => 0.6 + 0.6 * x
       // Lugnt läge: dämpat men synligt i vila, och i en paus aldrig ljusare än samma procent när passet går.

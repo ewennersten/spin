@@ -40,6 +40,21 @@ it('flocken: antalet följer setParticles, och fåglarna flyger fortare vid hög
   expect(fast).toBeGreaterThan(slow * 2)
 })
 
+it('flocken: följer ledaren i åttan från ena sidan av bilden till den andra', () => {
+  const s = flock()
+  const a = (s.scene.children[0] as Shaded).geometry.attributes.position.array
+  const centerX = () => { let x = 0; for (let n = 0; n < MAX_BIRDS; n++) x += a[n * 6]; return x / MAX_BIRDS }
+  let min = Infinity, max = -Infinity
+  // 20 s vid medelhög intensitet hinner mer än ett varv i åttan.
+  for (let f = 0; f < 1250; f++) {
+    s.update({ ...input, intensity: 0.5 })
+    if (f > 200) { min = Math.min(min, centerX()); max = Math.max(max, centerX()) }
+  }
+  expect(min).toBeLessThan(-5)
+  expect(max).toBeGreaterThan(5)
+  s.dispose()
+})
+
 it('kalejdoskopet: strömmar fortare vid hög intensitet', () => {
   const travel = (intensity: number) => {
     const s = kalejdoskop()

@@ -82,15 +82,18 @@ export class SceneDirector {
 
   constructor(readonly count: number, readonly random: () => number = Math.random, readonly forced: number | null = null, readonly restCount = 0) {}
 
-  pick(blockIndex: number, nowMs: number, rest = false): number {
+  // banned är scener som inte får visas just nu (för lugna för intensiteten). Visas en av dem byts den direkt.
+  pick(blockIndex: number, nowMs: number, rest = false, banned: readonly number[] = []): number {
     if (this.forced !== null) return this.forced
     const [from, n] = rest && this.restCount ? [this.count, this.restCount] : [0, this.count]
-    const inPool = this.#current >= from && this.#current < from + n
-    if (this.#current < 0 || !inPool) {
-      this.#current = from + Math.floor(this.random() * n)
+    const all = [...Array(n).keys()].map(i => from + i)
+    const allowed = all.filter(i => !banned.includes(i))
+    const pool = allowed.length ? allowed : all
+    if (!pool.includes(this.#current)) {
+      this.#current = pool[Math.floor(this.random() * pool.length)]
       this.#changedAt = nowMs
-    } else if (blockIndex !== this.#block && nowMs - this.#changedAt >= SCENE_MIN_MS && n > 1) {
-      const others = [...Array(n).keys()].map(i => from + i).filter(i => i !== this.#current)
+    } else if (blockIndex !== this.#block && nowMs - this.#changedAt >= SCENE_MIN_MS && pool.length > 1) {
+      const others = pool.filter(i => i !== this.#current)
       this.#current = others[Math.floor(this.random() * others.length)]
       this.#changedAt = nowMs
     }

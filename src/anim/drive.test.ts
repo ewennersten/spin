@@ -87,6 +87,14 @@ it('scenvalet: en tvingad scen gäller alltid, och med en enda scen blir det den
   expect(one.pick(0, 0)).toBe(0)
   expect(one.pick(1, 30000)).toBe(0)
 })
+it('scenvalet: en spärrad scen väljs aldrig, och visas den byts den direkt', () => {
+  const d = new SceneDirector(4, () => 0.99)
+  expect(d.pick(0, 0)).toBe(3)
+  expect(d.pick(0, 1000, false, [3])).toBe(2) // samma block och bara en sekund senare, men spärrad: byts direkt
+  for (let i = 0; i < 20; i++) expect(d.pick(1 + i, 30000 * (i + 1), false, [3])).not.toBe(3)
+  expect(new SceneDirector(1).pick(0, 0, false, [0])).toBe(0) // spärras alla visas ändå något
+})
+
 it('lugnt läge under vila och paus', () => {
   expect(calmFor(55, true)).toBe(true)
   expect(calmFor(60, true)).toBe(false)

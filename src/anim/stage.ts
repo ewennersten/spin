@@ -10,7 +10,7 @@ import { zoneFor } from '../model/zones'
 import { BandLevels, BeatPulse, NO_CAP, SceneDirector, calmCap, calmFor, follow, intensityFor, shakeAmount } from './drive'
 import { LightGovernor } from './governor'
 import { QUALITY_LEVELS, QualityController } from './quality'
-import { SCENES } from './scenes'
+import { SCENES, SCENE_MAX_PCT } from './scenes'
 import { REST_SCENES } from './scenes/vila'
 import type { Scene } from './scenes/scene'
 
@@ -226,7 +226,8 @@ export function createStage(options: StageOptions): Stage | null {
     }
 
     // Scenbyte genom mörker. Glappet räknas som högst 100 ms, så att en dold flik inte tonar upp på en gång.
-    const want = director.pick(f.blockIndex, f.nowMs, f.rest)
+    const banned = [...SCENE_MAX_PCT].filter(([, max]) => f.pctNow > max).map(([i]) => i)
+    const want = director.pick(f.blockIndex, f.nowMs, f.rest, banned)
     const fadeStep = Math.min(dtMs, 100) / FADE_MS
     if (want !== index) {
       fade = Math.max(0, fade - fadeStep)

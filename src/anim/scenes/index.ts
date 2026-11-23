@@ -8,3 +8,6 @@ import { swarm } from './swarm'
 import { tunnel } from './tunnel'
 
 export const SCENES: SceneFactory[] = [tunnel, grid, swarm, ring, klot, flock, kalejdoskop]
+
+// Scener som är för lugna för hårda intervaller visas bara upp till den här procenten av FTP.
+export const SCENE_MAX_PCT = new Map([[SCENES.indexOf(flock), 70]])
