@@ -4,3 +4,6 @@
 .superpowers/
 node_modules
 dist
+
+# Lokala miljövariabler (Vite läser .env.local)
+*.local
