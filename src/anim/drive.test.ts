@@ -95,6 +95,16 @@ it('scenvalet: en spärrad scen väljs aldrig, och visas den byts den direkt', (
   expect(new SceneDirector(1).pick(0, 0, false, [0])).toBe(0) // spärras alla visas ändå något
 })
 
+it('scenvalet: i ett långt block byts scenen var 3:e minut', () => {
+  const d = new SceneDirector(4, () => 0)
+  const first = d.pick(0, 0)
+  expect(d.pick(0, 179_000)).toBe(first)
+  const second = d.pick(0, 180_000)
+  expect(second).not.toBe(first)
+  expect(d.pick(0, 300_000)).toBe(second) // två minuter efter bytet
+  expect(d.pick(0, 360_000)).not.toBe(second)
+})
+
 it('lugnt läge under vila och paus', () => {
   expect(calmFor(55, true)).toBe(true)
   expect(calmFor(60, true)).toBe(false)

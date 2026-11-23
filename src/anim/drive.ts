@@ -71,9 +71,10 @@ export class BandLevels {
 }
 
 const SCENE_MIN_MS = 20000
+const SCENE_MAX_MS = 180000 // i långa block byts scenen ändå var 3:e minut
 
-// Byter scen vid nytt block, högst var 20:e sekund och aldrig till samma som nyss. Scenerna 0 till count − 1 är de
-// vanliga och de restCount följande är viloscenerna. I vila (rest) väljs bara viloscener och annars bara vanliga;
+// Byter scen vid nytt block, högst var 20:e sekund och aldrig till samma som nyss. Har samma scen visats i 3 minuter
+// byts den även mitt i ett block. Scenerna 0 till count − 1 är de vanliga och de restCount följande är viloscenerna. I vila (rest) väljs bara viloscener och annars bara vanliga;
 // byts det ena mot det andra byts scenen direkt, utan att vänta 20 sekunder.
 export class SceneDirector {
   #current = -1
@@ -92,12 +93,12 @@ export class SceneDirector {
     if (!pool.includes(this.#current)) {
       this.#current = pool[Math.floor(this.random() * pool.length)]
       this.#changedAt = nowMs
-    } else if (blockIndex !== this.#block && nowMs - this.#changedAt >= SCENE_MIN_MS && pool.length > 1) {
+    } else if (pool.length > 1 && (blockIndex !== this.#block ? nowMs - this.#changedAt >= SCENE_MIN_MS : nowMs - this.#changedAt >= SCENE_MAX_MS)) {
       const others = pool.filter(i => i !== this.#current)
       this.#current = others[Math.floor(this.random() * others.length)]
       this.#changedAt = nowMs
     }
-    // Blocket noteras även när bytet nekas, så att scenen bara byts vid blockgränser.
+    // Blocket noteras även när bytet nekas, så att ett nekat byte inte görs senare mitt i blocket.
     this.#block = blockIndex
     return this.#current
   }
