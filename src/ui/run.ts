@@ -487,7 +487,8 @@ function screen(store: Store, main: HTMLElement, w: Workout, words: string[]): (
   let saved = fast ? null : loadRun(store.kv, w, now())
   // Samma pass kört igen inom fyra timmar kan ge ett läge efter passets slut. Det rensas, så att Starta börjar om.
   if (saved && locate(segments, position(saved, now())).done) { forget(); saved = null }
-  if (saved) { clock = saved; hint = true; begin() }
+  // Ett återupptaget pass delas igen, så att följvyn hittar det även om datorn laddades om eller var utan nät.
+  if (saved) { clock = saved; hint = true; begin(); persist() }
   else overview()
   // Även i överblicken, så att skärmen inte släcks under genomgången före start.
   wake()
