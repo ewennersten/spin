@@ -41,6 +41,21 @@ const withNewIds = (w: Workout): Workout => ({
     : { ...i, id: newId(), blocks: i.blocks.map(b => ({ ...b, id: newId() })) }),
 })
 
+// Passen i en exporterad fil, kontrollerade och med nya id, så att de inte krockar med befintliga pass.
+export function parseImport(json: string): Workout[] {
+  let file: unknown
+  try { file = JSON.parse(json) } catch { /* file förblir undefined och avvisas nedan */ }
+  // Bara ett JSON-objekt kan ha fältet workouts; tal, text, null och listor ger undefined här.
+  const workouts = (file as { workouts?: unknown } | null | undefined)?.workouts
+  if (!Array.isArray(workouts)) throw new Error('Filen är inte en giltig passfil')
+  return workouts.map((x, i) => {
+    const r = validateWorkout(x)
+    if (r.ok) return withNewIds(r.workout)
+    const label = typeof x?.name === 'string' && x.name.trim() ? x.name : `Pass ${i + 1}`
+    throw new Error(`${label}: ${r.error}`)
+  })
+}
+
 export function createStorage(kv: KV = window.localStorage): Store {
   // Varje anrop läser om nyckeln, så att inget gammalt minne (eller en annan flik) skriver över nyare data.
   // Alla skrivningar går via readWorkouts först: går datan inte att tolka kastas felet innan något skrivs.
@@ -96,17 +111,7 @@ export function createStorage(kv: KV = window.localStorage): Store {
     async deleteWorkout(id) { writeWorkouts(readWorkouts().filter(w => w.id !== id)) },
     async exportAll() { return JSON.stringify({ app: 'spinningskarm', version: 1, workouts: readWorkouts() }) },
     async importAll(json) {
-      let file: unknown
-      try { file = JSON.parse(json) } catch { /* file förblir undefined och avvisas nedan */ }
-      // Bara ett JSON-objekt kan ha fältet workouts; tal, text, null och listor ger undefined här.
-      const workouts = (file as { workouts?: unknown } | null | undefined)?.workouts
-      if (!Array.isArray(workouts)) throw new Error('Filen är inte en giltig passfil')
-      const added = workouts.map((x, i) => {
-        const r = validateWorkout(x)
-        if (r.ok) return withNewIds(r.workout)
-        const label = typeof x?.name === 'string' && x.name.trim() ? x.name : `Pass ${i + 1}`
-        throw new Error(`${label}: ${r.error}`)
-      })
+      const added = parseImport(json)
       // Allt kontrolleras innan något skrivs, och allt skrivs i ett enda setItem: allt eller inget.
       writeWorkouts([...readWorkouts(), ...added])
       return added.length

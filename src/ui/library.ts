@@ -42,7 +42,10 @@ function download(json: string) {
   setTimeout(() => URL.revokeObjectURL(url))
 }
 
-export function libraryView(store: Store): View {
+// Det inloggade kontot, när passen ligger i molnet.
+export interface Account { email: string; logout: HTMLButtonElement }
+
+export function libraryView(store: Store, account?: Account): View {
   return (root) => {
     const status = el('p', { className: 'status', role: 'status' })
     const list = el('div')
@@ -125,6 +128,11 @@ export function libraryView(store: Store): View {
 
     const main = el('main', { className: 'library' })
     main.append(el('h2', { textContent: 'Dina pass' }), toolbar, status, list)
+    if (account) {
+      const who = el('p', { className: 'account', textContent: `Inloggad som ${account.email} ` })
+      who.append(account.logout)
+      main.append(who)
+    }
     root.append(clubHeader('Torsdagsspinning', 'pass'), main)
 
     void refresh()

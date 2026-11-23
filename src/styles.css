@@ -1703,3 +1703,40 @@ h2,
     animation: none;
   }
 }
+
+/* Inloggningen: loggan, rubriken och ett smalt formulär. */
+.login {
+  max-width: 420px;
+  padding-top: 48px;
+}
+.login .logo {
+  height: 56px;
+}
+.login form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+.login label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  color: var(--muted);
+}
+.login input {
+  font: inherit;
+  color: var(--text);
+  background: var(--natt);
+  border: 1.5px solid #ffffff40;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.login form button {
+  margin-right: 8px;
+}
+.account {
+  margin-top: 32px;
+  color: var(--muted);
+}
