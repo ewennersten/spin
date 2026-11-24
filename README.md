@@ -4,33 +4,27 @@ Appen visar spinningpasset på storskärmen i salen: vad ni kör nu, hur länge 
 
 Använd Chrome eller Edge.
 
-## Starta appen
+## Öppna appen
 
-Node.js måste finnas på datorn. Saknas det: hämta LTS-versionen från nodejs.org och installera den.
+Öppna **https://spinmaggedon.vercel.app** i Chrome eller Edge. Appen uppdateras av sig själv när en ny version läggs ut.
 
-1. Öppna programmet Terminal.
-2. Skriv `cd` och ett mellanslag, dra mappen *Spinning spel* från Finder in i terminalfönstret och tryck Enter.
-3. Första gången, och bara då, kör du:
+Datorn i salen behöver nät. Passen ligger på servern, så utan nät går inga pass att öppna. Ett pass som redan har startat fortsätter att gå om nätet försvinner, men följvyn på mobilen tappar då kontakten.
 
-   ```
-   npm install
-   ```
+## Konto och inloggning
 
-4. Starta appen:
+Första gången klickar du **Skapa konto**, fyller i e-post och ett lösenord på minst 8 tecken och bekräftar e-postadressen via länken i mejlet. Kontot måste sedan godkännas innan det kommer åt några pass; tills dess står det att kontot väntar på att bli godkänt. Den som administrerar appen godkänner kontot i Supabase, i tabellen `profiles`, genom att sätta `approved` till `true`.
 
-   ```
-   npm run dev
-   ```
+Du förblir inloggad på datorn tills du klickar **Logga ut** längst ned i biblioteket. Varje konto ser bara sina egna pass.
 
-5. Öppna `http://localhost:5173/` i Chrome eller Edge.
+Första gången ett konto loggar in på en dator laddas de pass som redan fanns i den webbläsaren upp till kontot, om kontot inte redan har pass. Det sker bara en gång per konto och dator.
 
-Låt terminalfönstret vara öppet så länge appen används. Du stänger appen genom att trycka Ctrl+C i terminalen.
+Peppord, mikrofonens inställningar, animationerna och ljusspärren sparas i webbläsaren på datorn, inte på kontot. Ställ in dem på datorn i salen.
 
-Säger terminalen att port 5173 är upptagen ("Port 5173 is already in use") betyder det att något annat program använder porten. Det kan vara den här appen i ett annat terminalfönster, eller ett helt annat program. Öppna `http://localhost:5173/` och se efter vad som visas innan du stänger något: är det den här appen kan du använda den direkt.
+## Följ passet på mobilen
 
-## Starta alltid på samma sätt
+Logga in med samma konto på mobilen och tryck **Följ passet på mobilen** längst ned i biblioteket (adressen är `https://spinmaggedon.vercel.app/#/folj`). Mobilen visar passet som pågår på datorn: blocket, procenten, nedräkningen, nästa block och staplarna, utan animationer. Den följer med när passet startar, pausas, hoppar och avslutas, och skärmen hålls tänd så länge vyn är öppen. När inget pass pågår står det **Inget pass pågår**.
 
-De sparade passen ligger i webbläsaren och är knutna till adressen `http://localhost:5173`. Starta därför alltid appen med `npm run dev` och öppna den i samma webbläsare. Med en annan adress, en annan port eller en annan webbläsare ser det ut som att passen är borta. Samma sak gäller tillståndet för mikrofonen.
+Mobilen räknar fram klockan själv, så mobilens och datorns klockor behöver gå lika. Det gör de om båda hämtar tiden från nätet, som de brukar göra.
 
 ## Säkerhetskopiera passen
 
@@ -39,6 +33,19 @@ Klicka på **Exportera pass** i biblioteket. Då hamnar en fil som heter `spinni
 Med **Importera pass** läser du in en sådan fil igen. Passen i filen läggs till, och inget av de pass som redan finns skrivs över.
 
 Exporten innehåller passen. Peppord och mikrofonens inställningar följer inte med.
+
+## Köra appen på den egna datorn
+
+För utveckling, eller om salen saknar nät, går appen att köra på datorn. Node.js måste finnas; saknas det, hämta LTS-versionen från nodejs.org.
+
+1. Öppna programmet Terminal.
+2. Skriv `cd` och ett mellanslag, dra mappen *Spinning spel* från Finder in i terminalfönstret och tryck Enter.
+3. Första gången, och bara då, kör du `npm install`.
+4. Starta appen med `npm run dev` och öppna `http://localhost:5173/` i Chrome eller Edge.
+
+Låt terminalfönstret vara öppet så länge appen används, och stäng appen med Ctrl+C. Säger terminalen att port 5173 är upptagen kör appen kanske redan i ett annat terminalfönster: öppna adressen och se efter innan du stänger något.
+
+Finns filen `.env.local` med Supabase-värdena (`VITE_SUPABASE_URL` och `VITE_SUPABASE_PUBLISHABLE_KEY`) loggar du in som på webben. Utan den ligger passen bara i webbläsaren och är knutna till adressen `http://localhost:5173`; med en annan adress, port eller webbläsare ser det då ut som att passen är borta.
 
 ## Locket ska vara öppet
 
@@ -109,7 +116,7 @@ Om mikrofonen försvinner mitt i passet, till exempel för att locket har fällt
 
 ## Animationerna
 
-Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Det finns sju scener: en tunnel av sexkantiga ringar, ett rutnätslandskap, en virvel av partiklar, en ring av staplar, ett klot av trådnät som böljer med basen, en flock lysande fåglar som flyger fortare ju hårdare ni kör, och ett kalejdoskop som strömmar ut från mitten. I vila (block som som högst ligger under 60 % av FTP) visas i stället bara lugna viloscener, gråa som vilozonen och utan puls i takt: **Discokula**, **Rymdfärd**, **Lavalampa**, **Rutnät som andas**, **Roterande geometri** och **Partikelmoln** (se `docs/ideer/viloscener.md`). Vid nya block byts scenen, högst var 20:e sekund, och bytet tonar genom mörker. Går passet från vila till ett annat block, eller tvärtom, byts scenen direkt. Passets namn och totaltiden, blockets namn, procenten, klockan och stapelbilden står direkt på animationen, texten med en mörk skugga runt bokstäverna. De vita texterna (passets namn, totaltiden, blockets namn och "av FTP") har en tunn röd och cyan kant, som staplarna, och på slaget glider kanten på blockets namn isär och tillbaka. Nästa blocks namn, tid och procent står i nästa zons färg, till exempel rött inför VO2max och grått inför vila, med glöd och samma kant. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
+Under passet fyller en 3D-animation bakgrunden. Den blir vildare ju högre procent av FTP ni kör, är lugn i vilan och under paus, och pulserar i takt med musiken (eller den interna takten). Det finns sju scener: en tunnel av sexkantiga ringar, ett rutnätslandskap, en virvel av partiklar, en ring av staplar, ett klot av trådnät som böljer med basen, en flock lysande fåglar som sveper i åttor genom bilden (bara upp till 70 % av FTP, eftersom den är för lugn för hårda intervaller), och ett kalejdoskop som strömmar ut från mitten. I vila (block som som högst ligger under 60 % av FTP) visas i stället bara lugna viloscener, gråa som vilozonen och utan puls i takt: **Discokula**, **Rymdfärd**, **Lavalampa**, **Rutnät som andas**, **Roterande geometri** och **Partikelmoln** (se `docs/ideer/viloscener.md`). Vid nya block byts scenen, högst var 20:e sekund, och i långa block byts den dessutom var tredje minut. Bytet tonar genom mörker på ungefär en sekund. Går passet från vila till ett annat block, eller tvärtom, byts scenen direkt. Passets namn och totaltiden, blockets namn, procenten, klockan och stapelbilden står direkt på animationen, texten med en mörk skugga runt bokstäverna. De vita texterna (passets namn, totaltiden, blockets namn och "av FTP") har en tunn röd och cyan kant, som staplarna, och på slaget glider kanten på blockets namn isär och tillbaka. Nästa blocks namn, tid och procent står i nästa zons färg, till exempel rött inför VO2max och grått inför vila, med glöd och samma kant. I överblicken och efter passet är bakgrunden mörk. Medan frågan om att avsluta visas är bakgrunden också mörk, och animationen tonar sedan upp igen.
 
 Under nedräkningen de sista fem sekunderna står siffran stort mitt på skärmen, och klockorna tonas ned. De sista tio sekunderna av ett hårt block, och av blocket före ett hårt block, byggs spänningen upp, som i en låt precis innan basen kommer tillbaka: streck rusar mot mitten allt tätare och snabbare, en ring pulserar ut allt oftare (högst 2,5 gånger per sekund) och kanterna mörknar. Vid noll tar effekten efter intervallen över; börjar ett hårt block släpps uppbyggnaden med samma rave-effekt, men utan ord. Med ljusspärren lyser uppbyggnaden hälften så starkt, och **A** eller minskade rörelser stänger av den. När ett hårt block (från 76 % av FTP och minst 15 sekunder långt) har körts klart kommer en rave-effekt i två sekunder, som när basen kommer tillbaka i en låt, och ett ord som "Starkt jobbat!" poppar fram. Effekten slumpas bland sex varianter, aldrig samma två gånger i rad: **Hyperfart** (streck och ringar rusar ut från mitten), **Golvvåg** (en våg rullar genom ett rutnätsgolv och skärmen rycker till), **Glitchchock** (förskjutna remsor och en blixtring), **Ljudvåg** (en neonlinje slår ut tvärs över skärmen), **Equalizer** (staplar skjuter upp längs golvet) och **Pulsringar** (neonramar pulserar ut mot kanterna). Hyperfart och Glitchchock låter också hela skärmen glitcha en kort stund. Med ljusspärren på lyser effekten hälften så starkt, och skärmen varken rycker eller glitchar. Hoppar du förbi blocket med pilarna blir det ingen effekt. När ett nytt block börjar står dess namn, procent och längd en stund mitt på skärmen, utan platta, och det bakom tonas ned.
 
@@ -130,6 +137,7 @@ För utveckling finns två lägen i adressen:
 
 Ta med det här till salen och bocka av:
 
+- [ ] Datorn i salen har nät, och passen går att öppna. Följvyn på mobilen följer med när passet startar och pausas.
 - [ ] Kontrollera först att mikrofonen hör musiken. Sätt igång musiken på vanlig volym, klicka **Starta** vid ett pass i biblioteket och klicka **Slå på mikrofonen**. Det ska stå **Mikrofon**, och nivåmätaren ska röra sig med musiken. Står det Intern takt hör mikrofonen ingenting, och då säger lampan inget om takten.
 - [ ] Titta på lampan. Följer den bastrumman? De första sekunderna av en låt kan den komma en aning efter; när det står slag per minut efter källan ska den vara i takt.
 - [ ] Ställ in Synk: står det slag per minut och pulsen ändå känns sen eller tidig, dra reglaget tills pulsen på storskärmen slår samtidigt som trumman. Anteckna värdet.
