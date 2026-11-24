@@ -1,10 +1,32 @@
-# Handover: utseende, takt och rave-effekter (17–20 november 2026)
+# Handover: Spinningskärmen (senast uppdaterad 24 november 2026)
 
-Den här sessionen gjorde om appens utseende och känsla: från en saklig passkärm till en klubbskärm i Triathlon
-Västs färger med rave-känsla. Allt är incheckat på `main` (från `d472a7e` till `ea74033`). Det finns ingen
-fjärrkopia. Alla 142 tester och bygget går igenom.
+Klubbskärm för spinningpass i Triathlon Västs färger, med rave-effekter, inloggning och följvy på mobilen.
+Koden ligger på GitHub i `ewennersten/spin` (publikt) och publiceras automatiskt till
+https://spinmaggedon.vercel.app vid varje push till `main`. Alla 150 tester och bygget går igenom.
 
-Kör appen med `npm run dev` och öppna `http://localhost:5173`. Kör testerna med `npm test`.
+Kör appen med `npm run dev` och öppna `http://localhost:5173`. Kör testerna med `npm test`. Lokalt läses
+Supabase-värdena från `.env.local` (ignoreras av git). Serverinställningen `spinningskarm-lokal` i
+`.claude/launch.json` kör appen utan Supabase, alltså utan inloggning och med passen i webbläsaren.
+
+## Senaste sessionen (23–24 november): publicering, Supabase och följvy
+- **Vercel**: projektet `spin` på det privata kontot `ewennersten`, kopplat till GitHub. Miljövariablerna
+  `VITE_SUPABASE_URL` och `VITE_SUPABASE_PUBLISHABLE_KEY` ligger i Vercel.
+- **Supabase**: projektet `spin` (`bnlhpjzhjdmbktskjsoh`, Stockholm) i den privata organisationen. Schemat ligger i
+  `supabase/migrations/`. Tabeller: `profiles` (ett konto per inloggning, `approved` sätts av Elias),
+  `workouts` (passen som JSON, en rad per konto och pass) och `live_runs` (passet som pågår, för följvyn).
+  Behörighetsreglerna släpper bara in godkända konton och bara till deras egna rader.
+- **Inloggning** med e-post och lösenord (`src/ui/login.ts`). Vem som helst kan registrera sig, men kontot måste
+  godkännas: sätt `approved` till `true` i tabellen `profiles`. Utan Supabase-variablerna fungerar appen som förut.
+- **Passen i molnet** (`src/storage/cloud.ts`). Inställningar (peppord, mikrofon, animationer, ljusspärr) och
+  pågående pass ligger kvar i webbläsaren, eftersom de hör till datorn i salen. Datorns pass laddas upp en gång
+  när ett tomt konto loggar in. **Utan nät går inga pass att öppna.**
+- **Följvyn** (`src/ui/follow.ts`, adressen `#/folj`): mobilen, inloggad med samma konto, visar passet som pågår på
+  datorn, utan animationer. Datorn skickar klockans läge vid start, paus, hopp, avslut och när ett pass återupptas;
+  mobilen räknar fram positionen själv via Supabase Realtime. Mobilen och datorn behöver gå på nätets tid.
+- **Fågelscenen** (flocken) flyger efter en osynlig ledare i åttor genom bilden och visas bara upp till 70 % av FTP
+  (`SCENE_MAX_PCT` i `src/anim/scenes/index.ts`).
+- **Scenbyten**: vid nytt block (högst var 20:e sekund) och dessutom var 3:e minut mitt i långa block. Bytet tonas
+  genom svart på 0,6 + 0,6 sekunder (`src/anim/stage.ts`). Användaren har sett det och vill ha det så.
 
 ## Vad som finns nu
 
@@ -37,7 +59,7 @@ Kör appen med `npm run dev` och öppna `http://localhost:5173`. Kör testerna m
 - **Q och R** börjar om passet, **pil höger** och klick på "Nästa" hoppar till nästa block.
 
 ### 3D-bakgrunden
-- Sju vanliga scener: tunnel, rutnät, partikelsvärm, ring, **klot**, **flock** och **kalejdoskop**.
+- Sju vanliga scener: tunnel, rutnät, partikelsvärm, ring, **klot**, **flock** (bara upp till 70 %) och **kalejdoskop**.
 - Sex **viloscener** som bara visas i vila, alltså block som som högst ligger under 60 % av FTP (`src/anim/scenes/vila.ts`):
   discokula, rymdfärd, lavalampa, rutnät som andas, roterande geometri och partikelmoln. De är gråa som vilozonen,
   rör sig långsamt och följer inte musiken. Byte mellan vila och annat sker direkt (`SceneDirector` i `src/anim/drive.ts`).
@@ -69,13 +91,17 @@ Kör appen med `npm run dev` och öppna `http://localhost:5173`. Kör testerna m
 
 ## Öppet och att tänka på
 - Takten är det som fungerar sämst. Nästa steg är att prova med riktiga låtar och ställa in Synk i salen.
-- aubio är GPL-licensierat. Läggs appen ut öppet på nätet bör appens kod också vara öppen.
+- aubio är GPL-licensierat. Appen och repot är nu publika men repot saknar licens; förslaget är GPL-3.0, och
+  beslutet är användarens.
+- Salen måste ha nät, eftersom passen ligger i molnet. Är nätet dåligt kan passen även sparas lokalt.
+- Supabase föreslår skydd mot läckta lösenord (Authentication → Providers → Email); det slår användaren på själv.
+- Supabases inbyggda e-post klarar bara ett par mejl i timmen, och ingen avisering skickas när ett konto väntar
+  på godkännande.
 - Ljusspärren är avstängd från början. Den bör slås på om någon i gruppen är ljuskänslig.
 - Bygget varnar för att three.js-delen är över 500 kB och för att aubiojs nämner Node-modulerna `fs` och `path`.
   Det påverkar inte appen i webbläsaren.
 - Förslag som inte byggts: puls i startmenyn, ljuskäglor, publik med händer, baspump, rökmaskin, neon över 3D-bilden.
-- Tidigare planer som inte påbörjats: Vercel och Supabase med synk till mobilen, finjustering av mikrofonen efter
-  test i salen.
+- Inte påbörjat: finjustering av mikrofonen efter test i salen.
 
 ## Arbetssätt
 - Commit bara när användaren ber om det, med meddelande på svenska och raden

@@ -7,3 +7,6 @@ dist
 
 # Lokala miljövariabler (Vite läser .env.local)
 *.local
+
+# macOS
+.DS_Store
