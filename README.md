@@ -143,3 +143,9 @@ Ta med det här till salen och bocka av:
 - [ ] Effekten efter ett hårt block bländar inte, och nedräkningens siffror går att läsa framför animationen.
 - [ ] Vila och paus ser lagom dämpade ut: lugna, men inte avstängda.
 - [ ] Inget i bilden ser ut att flimra i takt med musiken utöver pulserna, till exempel staplar och berg som ändrar storlek med basen.
+
+## Licens
+
+Koden får användas, ändras och spridas enligt GNU General Public License version 3 (GPL-3.0), se filen `LICENSE`. Appen innehåller ljudbiblioteket aubio (via paketet `aubiojs`), som också har GPL-licens.
+
+Triathlon Västs logga och bilderna i mappen `public` (`triathlon-vast.webp`, `sim-cykel-lop.png` och `favicon.png`) tillhör Triathlon Väst och ingår inte i licensen.
