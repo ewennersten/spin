@@ -293,6 +293,13 @@ h2,
   font-variant-numeric: tabular-nums;
 }
 
+.workout .shared {
+  color: var(--muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 /* När biblioteket öppnas växer passens staplar upp nedifrån, en efter en. */
 .workout svg .bar,
 .workout svg .bar-reflection {

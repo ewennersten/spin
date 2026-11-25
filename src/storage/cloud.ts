@@ -2,13 +2,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ClockState } from '../clock/clock'
 import type { Workout } from '../model/types'
 import { validateWorkout } from '../model/validate'
-import { parseImport, type Store } from './storage'
+import { parseImport, type Access, type Store } from './storage'
 
-// Passen i Supabase. De är gemensamma för alla godkända konton; behörighetsreglerna i databasen ser till det.
+// Passen i Supabase: kontots egna och de som andra har delat. Behörighetsreglerna i databasen ser till att bara
+// ägaren kan ändra, dela och ta bort ett pass.
+export interface WorkoutRow extends Access { workout: Workout }
 export interface WorkoutRows {
-  list(): Promise<Workout[]>
+  list(): Promise<WorkoutRow[]>
   upsert(workouts: Workout[]): Promise<void>
   remove(id: string): Promise<void>
+  setShared(id: string, shared: boolean): Promise<void>
 }
 
 // Supabase-klientens fel är på engelska. Ett nätfel kommer som ett fel från fetch, med olika text i olika webbläsare.
@@ -18,13 +21,13 @@ export function fail(e: { message: string } | null): void {
   throw new Error(`Servern svarade med ett fel: ${e.message}`)
 }
 
-export function supabaseRows(client: SupabaseClient): WorkoutRows {
+export function supabaseRows(client: SupabaseClient, userId: string): WorkoutRows {
   const table = () => client.from('workouts')
   return {
     async list() {
-      const { data, error } = await table().select('data').order('created_at').order('id')
+      const { data, error } = await table().select('data, user_id, shared').order('created_at').order('id')
       fail(error)
-      return (data ?? []).map(r => r.data as Workout)
+      return (data ?? []).map(r => ({ workout: r.data as Workout, mine: r.user_id === userId, shared: r.shared === true }))
     },
     async upsert(workouts) {
       if (!workouts.length) return
@@ -37,16 +40,28 @@ export function supabaseRows(client: SupabaseClient): WorkoutRows {
       const { error } = await table().delete().eq('id', id)
       fail(error)
     },
+    async setShared(id, shared) {
+      const { error } = await table().update({ shared }).eq('id', id)
+      fail(error)
+    },
   }
 }
 
 // Passen ligger i molnet. Inställningarna (peppord, mikrofon, animationer) och det pågående passet hör till datorn
 // i salen och ligger kvar i webbläsarens lagring.
 export function createCloudStorage(rows: WorkoutRows, local: Store): Store {
+  let access = new Map<string, Access>()
+  async function list() {
+    const rs = await rows.list()
+    access = new Map(rs.map(r => [r.workout.id, { mine: r.mine, shared: r.shared }]))
+    return rs.map(r => r.workout)
+  }
   return {
     ...local,
-    listWorkouts: () => rows.list(),
-    async getWorkout(id) { return (await rows.list()).find(w => w.id === id) ?? null },
+    listWorkouts: list,
+    async getWorkout(id) { return (await list()).find(w => w.id === id) ?? null },
+    accessOf: id => access.get(id),
+    setShared: (id, shared) => rows.setShared(id, shared),
     async saveWorkout(w) {
       // Samma kontroll som i webbläsarens lagring, så att allt som sparas också går att importera från exporten.
       const r = validateWorkout(w)
@@ -54,7 +69,7 @@ export function createCloudStorage(rows: WorkoutRows, local: Store): Store {
       await rows.upsert([{ ...r.workout, updatedAt: Date.now() }])
     },
     deleteWorkout: id => rows.remove(id),
-    async exportAll() { return JSON.stringify({ app: 'spinningskarm', version: 1, workouts: await rows.list() }) },
+    async exportAll() { return JSON.stringify({ app: 'spinningskarm', version: 1, workouts: await list() }) },
     async importAll(json) {
       // Allt kontrolleras innan något skrivs, och allt skrivs i en enda förfrågan: allt eller inget.
       const added = parseImport(json)
@@ -64,12 +79,15 @@ export function createCloudStorage(rows: WorkoutRows, local: Store): Store {
   }
 }
 
-// Första gången ett konto loggar in på en dator laddas datorns pass upp, om molnet inte redan har pass.
+// Första gången ett konto loggar in på en dator laddas datorns pass upp, om kontot inte redan har egna pass i molnet.
 // Det görs en gång per konto och dator, så att pass man har tagit bort i molnet inte kommer tillbaka.
 export async function uploadLocalOnce(rows: WorkoutRows, local: Store, userId: string): Promise<void> {
   const key = `spinning.uploaded.${userId}`
   if (local.kv.getItem(key)) return
-  if (!(await rows.list()).length) await rows.upsert(await local.listWorkouts())
+  const cloud = await rows.list()
+  // Exempelpassen har samma id hos alla, så ett exempel som redan finns delat laddas inte upp igen.
+  const fresh = (await local.listWorkouts()).filter(w => !cloud.some(r => r.workout.id === w.id))
+  if (!cloud.some(r => r.mine)) await rows.upsert(fresh)
   local.kv.setItem(key, '1')
 }
 

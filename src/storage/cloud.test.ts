@@ -1,21 +1,23 @@
 import { expect, it } from 'vitest'
 import { EXAMPLES } from '../model/examples'
 import type { Workout } from '../model/types'
-import { createCloudStorage, fail, toLiveRun, uploadLocalOnce, type WorkoutRows } from './cloud'
+import { createCloudStorage, fail, toLiveRun, uploadLocalOnce, type WorkoutRow, type WorkoutRows } from './cloud'
 import { createStorage, type KV } from './storage'
 
 const fakeKV = (): KV => {
   const data = new Map<string, string>()
   return { getItem: k => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v), removeItem: k => void data.delete(k) }
 }
-// Som tabellen i Supabase: upsert ersätter ett pass med samma id och behåller dess plats i listan.
-const fakeRows = (): WorkoutRows & { calls: number } => {
-  const rows = new Map<string, Workout>()
+// Som tabellen i Supabase: upsert ersätter ett pass med samma id och behåller dess plats i listan. Ett nytt pass är
+// kontots eget och privat; others är pass som andra konton har delat.
+const fakeRows = (others: Workout[] = []): WorkoutRows & { calls: number } => {
+  const rows = new Map<string, WorkoutRow>(others.map(w => [w.id, { workout: w, mine: false, shared: true }]))
   return {
     calls: 0,
     async list() { return [...rows.values()] },
-    async upsert(ws) { this.calls++; for (const w of ws) rows.set(w.id, structuredClone(w)) },
+    async upsert(ws) { this.calls++; for (const w of ws) rows.set(w.id, { mine: true, shared: false, ...rows.get(w.id), workout: structuredClone(w) }) },
     async remove(id) { rows.delete(id) },
+    async setShared(id, shared) { rows.set(id, { ...rows.get(id)!, shared }) },
   }
 }
 
@@ -44,13 +46,13 @@ it('molnet: ogiltiga pass sparas inte, och en import skrivs i en enda förfråga
   expect(JSON.parse(await s.exportAll()).workouts).toHaveLength(EXAMPLES.length)
 })
 
-it('molnet: datorns pass laddas upp en gång, och bara till ett tomt konto', async () => {
+it('molnet: datorns pass laddas upp en gång, och bara till ett konto utan egna pass', async () => {
   const local = createStorage(fakeKV())
   const rows = fakeRows()
   await uploadLocalOnce(rows, local, 'anna')
   expect(await rows.list()).toHaveLength(EXAMPLES.length)
   // Pass som tas bort i molnet kommer inte tillbaka vid nästa start.
-  for (const w of await rows.list()) await rows.remove(w.id)
+  for (const r of await rows.list()) await rows.remove(r.workout.id)
   await uploadLocalOnce(rows, local, 'anna')
   expect(await rows.list()).toHaveLength(0)
   // Ett annat konto med egna pass får inte datorns pass.
@@ -58,6 +60,28 @@ it('molnet: datorns pass laddas upp en gång, och bara till ett tomt konto', asy
   await other.upsert([EXAMPLES[1]])
   await uploadLocalOnce(other, local, 'bertil')
   expect(await other.list()).toHaveLength(1)
+  // Andras delade pass räknas inte som egna, och ett exempel som redan finns delat laddas inte upp igen.
+  const shared = fakeRows([EXAMPLES[0]])
+  await uploadLocalOnce(shared, local, 'cecilia')
+  const after = await shared.list()
+  expect(after).toHaveLength(EXAMPLES.length)
+  expect(after.find(r => r.workout.id === EXAMPLES[0].id)?.mine).toBe(false)
+})
+
+it('molnet: vem som äger ett pass och om det är delat', async () => {
+  const theirs = { ...EXAMPLES[1], id: 'deras' }
+  const s = createCloudStorage(fakeRows([theirs]), createStorage(fakeKV()))
+  await s.saveWorkout(EXAMPLES[0])
+  await s.listWorkouts()
+  expect(s.accessOf?.(EXAMPLES[0].id)).toEqual({ mine: true, shared: false })
+  expect(s.accessOf?.('deras')).toEqual({ mine: false, shared: true })
+  await s.setShared?.(EXAMPLES[0].id, true)
+  await s.listWorkouts()
+  expect(s.accessOf?.(EXAMPLES[0].id)).toEqual({ mine: true, shared: true })
+  // Att ändra sitt eget pass behåller delningen.
+  await s.saveWorkout({ ...EXAMPLES[0], name: 'Nytt namn' })
+  await s.getWorkout(EXAMPLES[0].id)
+  expect(s.accessOf?.(EXAMPLES[0].id)?.shared).toBe(true)
 })
 
 it('molnet: nätfel och serverfel ger svensk text', () => {

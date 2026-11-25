@@ -84,17 +84,25 @@ export function libraryView(store: Store, account?: Account): View {
       start.className = 'primary'
       const stop = button('Stoppa', () => change(async () => clearRun(store.kv)))
       stop.ariaLabel = `Stoppa ${w.name} så att det börjar om från början`
+      // Utan Supabase finns ingen delning och alla pass är ens egna.
+      const access = store.accessOf?.(w.id)
+      const mine = access?.mine ?? true
+      const share = access && mine && store.setShared
+        ? [button(access.shared ? 'Sluta dela' : 'Dela', () => change(() => store.setShared!(w.id, !access.shared)))]
+        : []
       const actions = el('div', { className: 'actions' })
       actions.append(
         start,
         ...(ongoing ? [stop] : []),
         ...(segments.length ? [] : [el('span', { className: 'note', textContent: 'Passet är tomt' })]),
-        button('Redigera', () => { location.hash = `#/edit/${w.id}` }),
+        ...(mine ? [button('Redigera', () => { location.hash = `#/edit/${w.id}` })] : []),
         button('Duplicera', () => change(() => store.saveWorkout(copyOf(w)))),
-        button('Ta bort', () => { if (confirm(`Ta bort passet ${w.name}?`)) change(() => store.deleteWorkout(w.id)) }),
+        ...share,
+        ...(mine ? [button('Ta bort', () => { if (confirm(`Ta bort passet ${w.name}?`)) change(() => store.deleteWorkout(w.id)) })] : []),
       )
       const info = el('div', { className: 'info' })
       info.append(el('span', { className: 'name', textContent: w.name }), el('span', { className: 'time', textContent: mmss(totalDuration(segments)) }))
+      if (access?.shared) info.append(el('span', { className: 'shared', textContent: mine ? 'Delat' : 'Delat med dig' }))
       if (ongoing) {
         const state = saved?.running ? 'Pågår' : 'Pausat'
         info.append(el('span', { className: 'ongoing', textContent: `${state} vid ${mmss(Math.floor(posMs / 1000))}` }))

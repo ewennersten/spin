@@ -22,7 +22,11 @@ export interface Store {
   saveLightLimitOn(on: boolean): Promise<void>
   // Delar passet som pågår med följvyn på mobilen; null när inget pass pågår. Finns bara med Supabase.
   shareRun?(workoutId: string | null, clock: ClockState | null): Promise<void>
+  // Vem som äger ett pass och om det är delat, för passen från senaste listWorkouts eller getWorkout. Finns bara med Supabase.
+  accessOf?(id: string): Access | undefined
+  setShared?(id: string, shared: boolean): Promise<void>
 }
+export interface Access { mine: boolean; shared: boolean }
 
 const WORKOUTS = 'spinning.workouts.v1'
 const PEPWORDS = 'spinning.pepwords.v1'

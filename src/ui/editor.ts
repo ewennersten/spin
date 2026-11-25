@@ -283,7 +283,12 @@ export function editorView(store: Store): View {
     store.getWorkout(id ?? '')
       .then(w => {
         if (!alive) return
-        if (w) leave = editor(store, root, main, w)
+        if (w && store.accessOf?.(w.id)?.mine === false) main.append(
+          el('h1', { textContent: 'Passet går inte att ändra' }),
+          el('p', { textContent: 'Någon annan har delat passet. Duplicera det i biblioteket för att få en egen kopia att ändra.' }),
+          back(),
+        )
+        else if (w) leave = editor(store, root, main, w)
         else main.append(el('h1', { textContent: 'Passet finns inte' }), back())
       })
       .catch(e => { if (alive) main.replaceChildren(el('p', { textContent: message(e) }), back()) })
