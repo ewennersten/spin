@@ -14,9 +14,9 @@ Datorn i salen behöver nät. Passen ligger på servern, så utan nät går inga
 
 Första gången klickar du **Skapa konto**, fyller i e-post och ett lösenord på minst 8 tecken och bekräftar e-postadressen via länken i mejlet. Kontot måste sedan godkännas innan det kommer åt några pass; tills dess står det att kontot väntar på att bli godkänt. Den som administrerar appen godkänner kontot i Supabase, i tabellen `profiles`, genom att sätta `approved` till `true`.
 
-Du förblir inloggad på datorn tills du klickar **Logga ut** längst ned i biblioteket. Varje konto ser bara sina egna pass.
+Du förblir inloggad på datorn tills du klickar **Logga ut** längst ned i biblioteket. Passen är gemensamma: alla godkända konton ser samma pass och kan köra, ändra och ta bort dem.
 
-Första gången ett konto loggar in på en dator laddas de pass som redan fanns i den webbläsaren upp till kontot, om kontot inte redan har pass. Det sker bara en gång per konto och dator.
+Första gången ett konto loggar in på en dator laddas de pass som redan fanns i den webbläsaren upp, om det inte redan finns pass i molnet. Det sker bara en gång per konto och dator.
 
 Peppord, mikrofonens inställningar, animationerna och ljusspärren sparas i webbläsaren på datorn, inte på kontot. Ställ in dem på datorn i salen.
 

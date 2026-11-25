@@ -17,9 +17,10 @@ Supabase-värdena från `.env.local` (ignoreras av git). Serverinställningen `s
   Behörighetsreglerna släpper bara in godkända konton och bara till deras egna rader.
 - **Inloggning** med e-post och lösenord (`src/ui/login.ts`). Vem som helst kan registrera sig, men kontot måste
   godkännas: sätt `approved` till `true` i tabellen `profiles`. Utan Supabase-variablerna fungerar appen som förut.
-- **Passen i molnet** (`src/storage/cloud.ts`). Inställningar (peppord, mikrofon, animationer, ljusspärr) och
+- **Passen i molnet** (`src/storage/cloud.ts`) är gemensamma: alla godkända konton ser, ändrar och tar bort alla
+  pass (`id` är primärnyckel, `user_id` är den som skapade passet). Inställningar (peppord, mikrofon, animationer, ljusspärr) och
   pågående pass ligger kvar i webbläsaren, eftersom de hör till datorn i salen. Datorns pass laddas upp en gång
-  när ett tomt konto loggar in. **Utan nät går inga pass att öppna.**
+  när ett konto loggar in och molnet är tomt. **Utan nät går inga pass att öppna.**
 - **Följvyn** (`src/ui/follow.ts`, adressen `#/folj`): mobilen, inloggad med samma konto, visar passet som pågår på
   datorn, utan animationer. Datorn skickar klockans läge vid start, paus, hopp, avslut och när ett pass återupptas;
   mobilen räknar fram positionen själv via Supabase Realtime. Mobilen och datorn behöver gå på nätets tid.

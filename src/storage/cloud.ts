@@ -4,7 +4,7 @@ import type { Workout } from '../model/types'
 import { validateWorkout } from '../model/validate'
 import { parseImport, type Store } from './storage'
 
-// Passen i Supabase. Raderna är användarens egna; behörighetsreglerna i databasen ser till det.
+// Passen i Supabase. De är gemensamma för alla godkända konton; behörighetsreglerna i databasen ser till det.
 export interface WorkoutRows {
   list(): Promise<Workout[]>
   upsert(workouts: Workout[]): Promise<void>
@@ -18,7 +18,7 @@ export function fail(e: { message: string } | null): void {
   throw new Error(`Servern svarade med ett fel: ${e.message}`)
 }
 
-export function supabaseRows(client: SupabaseClient, userId: string): WorkoutRows {
+export function supabaseRows(client: SupabaseClient): WorkoutRows {
   const table = () => client.from('workouts')
   return {
     async list() {
@@ -28,8 +28,9 @@ export function supabaseRows(client: SupabaseClient, userId: string): WorkoutRow
     },
     async upsert(workouts) {
       if (!workouts.length) return
-      const rows = workouts.map(w => ({ user_id: userId, id: w.id, data: w, updated_at: new Date(w.updatedAt || Date.now()).toISOString() }))
-      const { error } = await table().upsert(rows, { onConflict: 'user_id,id' })
+      // user_id skickas inte: ett nytt pass får den inloggades id i databasen, och den som skapade ett pass behålls när någon annan ändrar det.
+      const rows = workouts.map(w => ({ id: w.id, data: w, updated_at: new Date(w.updatedAt || Date.now()).toISOString() }))
+      const { error } = await table().upsert(rows, { onConflict: 'id' })
       fail(error)
     },
     async remove(id) {
@@ -63,7 +64,7 @@ export function createCloudStorage(rows: WorkoutRows, local: Store): Store {
   }
 }
 
-// Första gången ett konto loggar in på en dator laddas datorns pass upp, om kontot inte redan har pass i molnet.
+// Första gången ett konto loggar in på en dator laddas datorns pass upp, om molnet inte redan har pass.
 // Det görs en gång per konto och dator, så att pass man har tagit bort i molnet inte kommer tillbaka.
 export async function uploadLocalOnce(rows: WorkoutRows, local: Store, userId: string): Promise<void> {
   const key = `spinning.uploaded.${userId}`

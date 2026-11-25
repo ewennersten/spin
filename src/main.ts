@@ -56,7 +56,7 @@ async function start(local: Store) {
     const { data, error } = await client.from('profiles').select('approved').eq('id', user.id).maybeSingle()
     fail(error)
     if (!data?.approved) return pendingView(root, client, user.email ?? '')
-    const rows = supabaseRows(client, user.id)
+    const rows = supabaseRows(client)
     await uploadLocalOnce(rows, local, user.id)
     const live = supabaseLive(client, user.id)
     const store = { ...createCloudStorage(rows, local), shareRun: live.share }
