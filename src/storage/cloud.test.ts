@@ -66,6 +66,8 @@ it('molnet: datorns pass laddas upp en gång, och bara till ett konto utan egna 
   const after = await shared.list()
   expect(after).toHaveLength(EXAMPLES.length)
   expect(after.find(r => r.workout.id === EXAMPLES[0].id)?.mine).toBe(false)
+  // Uppladdade pass får nya id, så att de inte krockar med andras privata pass med samma id.
+  expect(after.filter(r => r.mine).every(r => !EXAMPLES.some(e => e.id === r.workout.id))).toBe(true)
 })
 
 it('molnet: vem som äger ett pass och om det är delat', async () => {

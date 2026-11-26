@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ClockState } from '../clock/clock'
 import type { Workout } from '../model/types'
 import { validateWorkout } from '../model/validate'
-import { parseImport, type Access, type Store } from './storage'
+import { parseImport, withNewIds, type Access, type Store } from './storage'
 
 // Passen i Supabase: kontots egna och de som andra har delat. Behörighetsreglerna i databasen ser till att bara
 // ägaren kan ändra, dela och ta bort ett pass.
@@ -85,8 +85,9 @@ export async function uploadLocalOnce(rows: WorkoutRows, local: Store, userId: s
   const key = `spinning.uploaded.${userId}`
   if (local.kv.getItem(key)) return
   const cloud = await rows.list()
-  // Exempelpassen har samma id hos alla, så ett exempel som redan finns delat laddas inte upp igen.
-  const fresh = (await local.listWorkouts()).filter(w => !cloud.some(r => r.workout.id === w.id))
+  // Exempelpassen har samma id hos alla, så ett exempel som redan finns delat laddas inte upp igen. Resten får nya id,
+  // eftersom id är unikt i hela tabellen: ett annat kontos privata exempel (osynligt här) skulle annars krocka.
+  const fresh = (await local.listWorkouts()).filter(w => !cloud.some(r => r.workout.id === w.id)).map(withNewIds)
   if (!cloud.some(r => r.mine)) await rows.upsert(fresh)
   local.kv.setItem(key, '1')
 }

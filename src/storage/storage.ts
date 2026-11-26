@@ -40,7 +40,7 @@ const PEP_DEFAULT = ['Kom igen!', 'Håll i!', 'Starkt!', 'Tryck på!', 'Ni äger
 const MIC_DEFAULT: MicSettings = { sensitivity: 5, bassLoHz: 40, bassHiHz: 150, leadMs: 120 }
 
 const newId = () => crypto.randomUUID()
-const withNewIds = (w: Workout): Workout => ({
+export const withNewIds = (w: Workout): Workout => ({
   ...w,
   id: newId(),
   items: w.items.map(i => i.kind === 'block'
